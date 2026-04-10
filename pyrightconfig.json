@@ -1,0 +1,11 @@
+{
+  "include": [
+    "."
+  ],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "extraPaths": [
+    "../../../python_embeded/Lib/site-packages",
+    "../../"
+  ]
+}

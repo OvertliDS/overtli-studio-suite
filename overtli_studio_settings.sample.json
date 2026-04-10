@@ -1,0 +1,11 @@
+{
+  "copilot_executable": "",
+  "copilot_model": "",
+  "lmstudio_api_key": "",
+  "lmstudio_base_url": "",
+  "openai_compatible_api_key": "",
+  "openai_compatible_base_url": "",
+  "openai_compatible_model": "gpt-4.1-mini",
+  "pollinations_api_key": "",
+  "schema_version": 2
+}
