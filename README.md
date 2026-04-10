@@ -115,6 +115,33 @@ Supported engines:
 
 -----
 
+## 🔑 Provider Setup & Authentication
+The Overtli Studio Suite is designed to be as "zero-config" as possible, supporting cloud, local, and standard API protocols.
+
+### ✨ Pollinations.ai (Cloud)
+API Key: Visit enter.pollinations.ai to generate your key.
+
+Setup: Enter your key into the GZ_ProviderSettings node or set the GZ_POLLINATIONS_API_KEY environment variable, as well as support in Pollinations nodes to enter api key directly.
+
+### 🤖 GitHub Copilot CLI (Cloud/Local Hybrid)
+Auto-Detection: If you are already signed in via the GitHub CLI (gh auth login), Overtli will automatically detect your session and "just work."
+
+Prerequisites: Requires an active Copilot subscription and the GitHub CLI installed (It will open a copilot-cli terminal silently by default for communication).
+
+### 🖥️ LM Studio (Local)
+Host: Defaults to http://localhost:1234.
+
+Setup: Ensure LM Studio is running and the "Local Server" is started. No API key is required by default.
+
+Vision: Support for vision-capable local models is integrated directly into the GZ_LMStudioTextEnhancer.
+
+### 🔌 OpenAI-Compatible APIs (Custom)
+Flexibility: Use any provider that supports the OpenAI standard (e.g., Groq, Together AI, LocalAI).
+
+Setup: Requires a Base URL and API Key configured in the GZ_ProviderSettings node (or just use the GZ_AdvancedTextEnhancer node).
+
+-----
+
 ## 🧠 Prompting & Output Contracts
 
 ### The Composition Model
