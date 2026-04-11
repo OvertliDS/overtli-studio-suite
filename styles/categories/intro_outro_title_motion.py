@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from ..types import PromptStyle
+
+STYLES: list[PromptStyle] = [
+    {
+        'key': 'channel_logo_reveal_intro',
+        'label': 'Channel Logo Reveal Intro [title-motion] [branding]',
+        'tags': ['title-motion', 'branding'],
+        'description': 'Logo-reveal intro style with identity-first motion, concise buildup, and polished branded payoff.',
+        'instruction': 'Build the intro around a strong logo reveal with concise pacing, clear visual buildup, and a satisfying branded payoff. Preserve identity clarity, premium motion feel, and memorable simplicity rather than drowning the logo in unnecessary visual noise.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'closing_credits_mood_style',
+        'label': 'Closing Credits Mood Style [editing] [atmosphere]',
+        'tags': ['editing', 'atmosphere'],
+        'description': 'Closing-credits style with reflective pacing, tonal afterglow, and emotionally coherent visual wind-down.',
+        'instruction': 'Build the sequence like closing credits imagery with reflective pacing, residual emotional tone, and visual material that supports release, contemplation, or epilogue feeling. Preserve coherence and mood without making the ending visually empty or repetitive.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'intermission_loop_style',
+        'label': 'Intermission Loop [ui-motion] [streaming]',
+        'tags': ['ui-motion', 'streaming'],
+        'description': 'Intermission-loop style with calm branded repetition, readable holding-state messaging, and long-duration loop stability.',
+        'instruction': 'Design as an intermission loop with subtle repeated motion, strong visual identity, and readable hold-state content suitable for breaks, be-right-back screens, or waiting periods. Preserve loop smoothness and brand cohesion without making the screen feel static or overly busy.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'loading_screen_style',
+        'label': 'Loading Screen [loading] [game-cinematic]',
+        'tags': ['loading', 'game-cinematic'],
+        'description': 'Loading-screen style with mood-preserving visuals, readable hierarchy, and waiting-state-friendly pacing.',
+        'instruction': 'Design as a loading screen or loading animation with strong visual identity, calm but engaging motion, and clear hierarchy for any supporting text, icons, or tips. Preserve atmosphere and loopability without making the sequence visually noisy or mechanically repetitive.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'loading_spinner_ui_motion',
+        'label': 'Loading Spinner / UI Motion [ui-motion] [loading]',
+        'tags': ['ui-motion', 'loading'],
+        'description': 'UI-loading motion style with clean repetition, polished micro-animation, and clear functional readability.',
+        'instruction': 'Design as a UI loading animation with smooth looping, clear timing rhythm, and polished motion behavior suitable for app, site, or game interfaces. Preserve clarity, elegance, and unobtrusive function rather than flashy or distracting movement.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'stream_starting_soon_screen',
+        'label': 'Starting Soon Screen [ui-motion] [streaming]',
+        'tags': ['ui-motion', 'streaming'],
+        'description': 'Stream-start screen style with branded ambient motion, readable messaging, and loop-friendly pre-show presence.',
+        'instruction': 'Design as a starting-soon or pre-show stream screen with clear text hierarchy, light branded motion, and screen-safe composition that can loop comfortably. Preserve readability and atmosphere without excessive motion or distracting clutter.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'teaser_social_cut_style',
+        'label': 'Teaser Social Cut [trailer] [social]',
+        'tags': ['trailer', 'social'],
+        'description': 'Short teaser-cut style with immediate hook, compact hype pacing, and shareable social-video impact.',
+        'instruction': 'Build the sequence as a short social teaser with a strong opening hook, rapid but readable escalation, and a final stinger or reveal beat that invites further interest. Preserve clarity, punch, and thumbnail-to-play momentum without reducing the cut to noise.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'title_sequence_style',
+        'label': 'Title Sequence Style [editing] [text]',
+        'tags': ['editing', 'text'],
+        'description': 'Title-sequence style with strong opening identity, typography integration, and mood-setting visual progression.',
+        'instruction': 'Direct the sequence like an opening title sequence with strong visual identity, integrated typography, clear tonal setup, and deliberate pacing. Preserve mood, thematic cohesion, and readable text-image relationships rather than relying on generic montage filler.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'youtube_intro_animation',
+        'label': 'YouTube Intro Animation [title-motion] [branding]',
+        'tags': ['title-motion', 'branding'],
+        'description': 'YouTube-intro style with strong creator identity, concise motion branding, and fast recognizability.',
+        'instruction': 'Design the sequence as a YouTube intro animation with clear creator-brand identity, strong opening impact, compact duration logic, and memorable title or logo motion. Preserve clarity, replay friendliness, and branded consistency without dragging the intro too long or overloading it with random effects.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+    {
+        'key': 'youtube_outro_animation',
+        'label': 'YouTube Outro Animation [title-motion] [branding]',
+        'tags': ['title-motion', 'branding'],
+        'description': 'YouTube-outro style with end-screen structure, channel-brand continuity, and clear engagement-oriented layout.',
+        'instruction': 'Design the sequence as a YouTube outro with strong end-card composition, clear visual placeholders for next content or subscribe areas, and consistent branded motion language. Preserve readability, usable spacing, and a satisfying wind-down without cluttering the layout.',
+        'main_category': 'Intro / Outro / Title Motion',
+    },
+]

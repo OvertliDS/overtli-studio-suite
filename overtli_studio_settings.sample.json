@@ -5,7 +5,7 @@
   "lmstudio_base_url": "",
   "openai_compatible_api_key": "",
   "openai_compatible_base_url": "",
-  "openai_compatible_model": "gpt-4.1-mini",
+  "openai_compatible_model": "",
   "pollinations_api_key": "",
   "schema_version": 2
 }

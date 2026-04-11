@@ -1,5 +1,5 @@
 # 📝 Text Instruction Mode Definitions
-# Applies to: GZ_TextEnhancer, GZ_LMStudioTextEnhancer, GZ_CopilotAgent
+# Applies to: GZ_TextEnhancer, GZ_LLMTextEnhancer, GZ_CopilotAgent
 
 """
 Text instruction modes for prompt enhancement.

@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from ..types import PromptStyle
+
+STYLES: list[PromptStyle] = [
+    {
+        'key': 'anamorphic_illusion',
+        'label': 'Anamorphic Illusion [illusion] [perspective]',
+        'tags': ['illusion', 'perspective'],
+        'description': 'Anamorphic-illusion style with stretched perspective logic designed to resolve into a coherent image from a specific viewpoint.',
+        'instruction': 'Render as an anamorphic illusion with intentional spatial distortion that resolves cleanly from the intended viewing angle. Preserve strong perspective construction, controlled elongation, and a readable final illusion payoff. Avoid random warping or decorative distortion that does not support the core anamorphic effect.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'figure_ground_illusion',
+        'label': 'Figure-Ground Illusion [illusion] [minimal]',
+        'tags': ['illusion', 'minimal'],
+        'description': 'Figure-ground illusion style using positive-negative space ambiguity, silhouette duality, and clean graphic contrast.',
+        'instruction': 'Render as a figure-ground illusion with strong silhouette design, balanced positive-negative relationships, and immediately readable dual interpretation. Preserve graphic cleanliness and perceptual balance so both readings remain clear without excessive ornament or visual noise.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'forced_perspective_illusion',
+        'label': 'Forced Perspective Illusion [illusion] [photo]',
+        'tags': ['illusion', 'photo'],
+        'description': 'Forced-perspective illusion style with scale manipulation, viewpoint control, and believable photographic trick composition.',
+        'instruction': 'Render as a forced-perspective illusion with carefully staged depth relationships, convincing scale manipulation, and a clearly controlled camera viewpoint. Preserve realistic spatial cues and readable object placement so the illusion works immediately without losing scene coherence.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'hidden_image_illusion',
+        'label': 'Hidden Image Illusion [illusion] [graphic]',
+        'tags': ['illusion', 'graphic'],
+        'description': 'Hidden-image illusion style with layered visual encoding, disguised forms, and satisfying secondary-image discovery.',
+        'instruction': 'Render as a hidden-image illusion where one image or pattern subtly contains another recognizable form. Preserve the primary composition while embedding the hidden image clearly enough to be discoverable without flattening the overall design into a puzzle diagram.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'impossible_object_illusion',
+        'label': 'Impossible Object Illusion [illusion] [surreal]',
+        'tags': ['illusion', 'surreal'],
+        'description': 'Impossible-object illusion style featuring paradoxical geometry, coherent local structure, and globally impossible spatial logic.',
+        'instruction': 'Render as an impossible-object illusion with physically convincing local perspective, clean edge construction, and impossible overall spatial relationships. Preserve the clarity of the paradox so the viewer can read the object cleanly before noticing the impossibility. Keep the structure elegant, intentional, and readable rather than noisy, distorted, or randomly surreal.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'mirror_symmetry_illusion',
+        'label': 'Mirror Symmetry Illusion [illusion] [symmetry]',
+        'tags': ['illusion', 'symmetry'],
+        'description': 'Mirror-illusion style with bilateral symmetry, reflective ambiguity, and perceptual doubling effects.',
+        'instruction': 'Render as a mirror-based illusion using strong bilateral structure, reflective logic, and clean compositional balance. Preserve the tension between symmetry and spatial interpretation so the scene feels uncanny and deliberate rather than simply duplicated.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'moire_optical_pattern',
+        'label': 'Moire Optical Pattern [illusion] [pattern]',
+        'tags': ['illusion', 'pattern'],
+        'description': 'Moire-pattern illusion style with interference effects, layered line systems, and controlled vibrating visual movement.',
+        'instruction': 'Render as a moire optical pattern using layered line fields, repeated geometry, and controlled interference structures that create the sensation of shimmer, movement, or instability. Preserve pattern discipline and crisp spacing so the effect feels intentional and visually striking rather than noisy.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'optical_illusion',
+        'label': 'Optical Illusion [illusion] [graphic]',
+        'tags': ['illusion', 'graphic'],
+        'description': 'Perception-bending optical-illusion style with controlled geometry, visual ambiguity, and strong eye-trick readability.',
+        'instruction': 'Render as an optical illusion with precise geometric control, intentional figure-ground ambiguity, and strong perceptual tension. Use contrast, repetition, directional lines, scale shifts, and edge relationships to create a convincing illusion effect that remains visually clean and immediately legible. Preserve graphic discipline and structural consistency, avoiding random chaos or decorative clutter that weakens the illusion.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'escher_like_space_illusion',
+        'label': 'Paradox Space Illusion [illusion] [architectural]',
+        'tags': ['illusion', 'architectural'],
+        'description': 'Architectural paradox-illusion style with looping space, impossible stairs, contradictory gravity, and disciplined structural clarity.',
+        'instruction': 'Render as a paradoxical architectural space with believable materials, clean perspective lines, and impossible circulation logic such as looping stairs, contradictory verticals, or gravity-defying transitions. Preserve precise spatial readability and elegant construction so the illusion feels deliberate and intellectually satisfying rather than messy or arbitrary.',
+        'main_category': 'Illusions',
+    },
+    {
+        'key': 'trompe_loeil',
+        'label': "Trompe-l'oeil [illusion] [realism]",
+        'tags': ['illusion', 'realism'],
+        'description': "Trompe-l'oeil illusion style with highly convincing painted realism, surface deception, and physical-space trickery.",
+        'instruction': "Render as trompe-l'oeil with realistic shadow behavior, convincing surface attachment, precise material mimicry, and a strong illusion of depth or protrusion on a flat plane. Preserve realism, edge accuracy, and convincing environmental integration so the illusion feels physically deceptive rather than merely decorative.",
+        'main_category': 'Illusions',
+    },
+]

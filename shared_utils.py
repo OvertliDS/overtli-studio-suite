@@ -21,7 +21,7 @@ from .instruction_modes import (
     ALL_MODES,
 )
 from .exceptions import OvertliInputError
-from .prompt_styles import STYLE_OFF_LABEL, append_style_layers_to_prompt, normalize_style_presets
+from .styles import STYLE_OFF_LABEL, append_style_layers_to_prompt, normalize_style_presets
 
 
 # ============================================================================
@@ -456,3 +456,4 @@ __all__ = [
     "format_model_display_name",
     "filter_models_by_capability",
 ]
+

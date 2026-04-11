@@ -187,9 +187,15 @@ class SuiteConfig:
         # Set temp dir to ComfyUI temp if not specified
         if self.temp_dir is None:
             try:
-                import folder_paths
-                self.temp_dir = folder_paths.get_temp_directory()
-            except ImportError:
+                import importlib
+
+                folder_paths_module = importlib.import_module("folder_paths")
+                get_temp_directory = getattr(folder_paths_module, "get_temp_directory", None)
+                if callable(get_temp_directory):
+                    self.temp_dir = str(get_temp_directory())
+                else:
+                    raise AttributeError("folder_paths.get_temp_directory is unavailable")
+            except (ModuleNotFoundError, AttributeError):
                 import tempfile
                 self.temp_dir = tempfile.gettempdir()
 

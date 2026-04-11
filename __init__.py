@@ -12,7 +12,7 @@ All nodes use the 3-Layer Instruction Stack:
 3. Raw Prompt (always appended)
 """
 
-__version__ = "0.7.4"
+__version__ = "1.1.0"
 __author__ = "OVERTLI STUDIO"
 
 # ============================================================================
@@ -20,20 +20,42 @@ __author__ = "OVERTLI STUDIO"
 # ============================================================================
 
 # Pollinations Nodes (Phase 3 - Implemented)
-from .pollinations.text_enhancer import GZ_TextEnhancer
-from .pollinations.image_gen import GZ_ImageGen
-from .pollinations.video_gen import GZ_VideoGen
-from .pollinations.text_to_speech import GZ_TextToSpeech
-from .pollinations.speech_to_text import GZ_SpeechToText
-from .pollinations.text_to_audio import GZ_TextToAudio
+try:
+    from .nodes.pollinations import (
+        GZ_ImageGen,
+        GZ_SpeechToText,
+        GZ_TextEnhancer,
+        GZ_TextToAudio,
+        GZ_TextToSpeech,
+        GZ_VideoGen,
+    )
 
-# Local Nodes (Phase 4 - Implemented)
-from .lm_studio_vision import GZ_LMStudioTextEnhancer
-from .copilot_agent import GZ_CopilotAgent
-from .advanced_text_enhancer import GZ_AdvancedTextEnhancer
-from .provider_settings import GZ_ProviderSettings
-from .prompt_library_node import GZ_PromptLibraryNode
-from .style_stack_node import GZ_StyleStackNode
+    # Local Nodes (Phase 4 - Implemented)
+    from .nodes.advanced_text_enhancer import GZ_AdvancedTextEnhancer
+    from .nodes.copilot_agent import GZ_CopilotAgent
+    from .nodes.llm_text_enhancer import GZ_LLMTextEnhancer
+    from .nodes.openai_compatible_text_enhancer import GZ_OpenAICompatibleTextEnhancer
+    from .nodes.prompt_library import GZ_PromptLibraryNode
+    from .nodes.provider_settings import GZ_ProviderSettings
+    from .nodes.style_stack import GZ_StyleStackNode
+except ImportError:
+    # Pytest may import this file as a plain module (`__package__` is empty)
+    # while collecting tests. Keep import-time behavior non-fatal in that mode.
+    if __package__:
+        raise
+    GZ_ImageGen = None
+    GZ_SpeechToText = None
+    GZ_TextEnhancer = None
+    GZ_TextToAudio = None
+    GZ_TextToSpeech = None
+    GZ_VideoGen = None
+    GZ_AdvancedTextEnhancer = None
+    GZ_CopilotAgent = None
+    GZ_LLMTextEnhancer = None
+    GZ_OpenAICompatibleTextEnhancer = None
+    GZ_PromptLibraryNode = None
+    GZ_ProviderSettings = None
+    GZ_StyleStackNode = None
 
 
 # ============================================================================
@@ -70,13 +92,22 @@ NODE_CONFIG = {
     },
     
     # === Local Nodes (Phase 4 - Implemented) ===
+    "GZ_LLMTextEnhancer": {
+        "class": GZ_LLMTextEnhancer,
+        "display": "🏠 OVERTLI LLM Text Enhancer",
+    },
+    # Legacy node id retained for workflow compatibility.
     "GZ_LMStudioTextEnhancer": {
-        "class": GZ_LMStudioTextEnhancer,
-        "display": "🏠 OVERTLI LM Studio Text Enhancer",
+        "class": GZ_LLMTextEnhancer,
+        "display": "🏠 OVERTLI LLM Text Enhancer (Legacy ID)",
     },
     "GZ_CopilotAgent": {
         "class": GZ_CopilotAgent,
         "display": "🚀 OVERTLI Copilot Text Enhancer",
+    },
+    "GZ_OpenAICompatibleTextEnhancer": {
+        "class": GZ_OpenAICompatibleTextEnhancer,
+        "display": "🔌 OVERTLI OpenAI-Compatible Studio",
     },
 
     # === Unified Router + Utilities ===

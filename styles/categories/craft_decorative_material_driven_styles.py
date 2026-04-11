@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from ..types import PromptStyle
+
+STYLES: list[PromptStyle] = [
+    {
+        'key': 'art_deco',
+        'label': 'Art Deco [design] [decorative]',
+        'tags': ['design', 'decorative'],
+        'description': 'Art Deco style with geometric elegance, luxe symmetry, strong silhouettes, and streamlined ornamental rhythm.',
+        'instruction': 'Use Art Deco-inspired composition with geometric structure, metallic or luxe tonal cues, vertical emphasis, and disciplined decorative repetition. Preserve glamour and graphic order without drifting into generic retro clutter.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'beadwork_pattern_style',
+        'label': 'Beadwork Pattern Style [craft] [ornamental]',
+        'tags': ['craft', 'ornamental'],
+        'description': 'Beadwork-pattern style with repeated bead structure, ornamental rhythm, and handcrafted textile-like surface logic.',
+        'instruction': 'Render as beadwork or beaded pattern design with visible bead segmentation, color rhythm, ornamental repetition, and tactile handcrafted clarity. Preserve the patterned hand-assembled feel rather than flattening it into generic vector decoration.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'ceramic_glaze_illustration',
+        'label': 'Ceramic Glaze Illustration [craft] [ceramic]',
+        'tags': ['craft', 'ceramic'],
+        'description': 'Ceramic-glaze style with fired-surface character, glossy or matte kiln finish, and handcrafted vessel-like material behavior.',
+        'instruction': 'Render with ceramic glaze logic using fired-surface textures, glaze pooling or drip cues where appropriate, subtle kiln-made irregularities, and believable ceramic reflectance. Preserve handcrafted object integrity and ceramic material identity rather than generic glossy plastic shading.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'collage_mixed_media',
+        'label': 'Collage / Mixed Media [craft] [mixed-media]',
+        'tags': ['craft', 'mixed-media'],
+        'description': 'Mixed-media collage style with layered paper, texture juxtaposition, and assembled handcrafted composition.',
+        'instruction': 'Render as a collage or mixed-media piece using layered cut paper, torn edges, printed fragments, texture overlays, and assembled visual rhythm. Preserve the constructed handmade quality and material interplay without homogenizing everything into a single digital surface.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'mosaic_tile_art',
+        'label': 'Mosaic Tile Art [decorative] [craft]',
+        'tags': ['decorative', 'craft'],
+        'description': 'Mosaic-tile style with segmented pieces, grout structure, and pattern-driven decorative composition.',
+        'instruction': 'Render as mosaic art with clearly separated tile fragments, grout lines, controlled color grouping, and decorative surface rhythm. Preserve the assembled tiled feel and material segmentation instead of smooth painted transitions.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'origami_style',
+        'label': 'Origami Style [craft] [paper]',
+        'tags': ['craft', 'paper'],
+        'description': 'Origami-inspired paper-fold style with crisp fold geometry, clean planes, and disciplined material simplicity.',
+        'instruction': 'Render as origami with visible folded-paper logic, crisp crease lines, planar surfaces, and controlled paper texture. Preserve geometric clarity and fold-based construction rather than soft sculptural modeling or painterly treatment.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'papercraft_cutout',
+        'label': 'Papercraft Cutout [craft] [stylized]',
+        'tags': ['craft', 'stylized'],
+        'description': 'Layered papercraft style with cut-edge shapes, stacked depth, and handmade compositional charm.',
+        'instruction': 'Render as paper-cut illustration with visible layered planes, clean cut contours, soft cast-shadow depth, and tactile handcrafted simplicity. Preserve material clarity and shape-based storytelling without simulating paint or plastic surfaces.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'quilled_paper_art',
+        'label': 'Quilled Paper Art [craft] [paper]',
+        'tags': ['craft', 'paper'],
+        'description': 'Paper-quilling style with curled strips, layered dimensional ornament, and delicate handcrafted precision.',
+        'instruction': 'Render as quilled paper art using coiled paper strips, layered paper depth, clean edge definition, and decorative pattern logic. Preserve handcrafted dimensionality and paper material clarity without flattening it into generic illustration.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'screen_print_poster_style',
+        'label': 'Screen Print Poster Style [printmaking] [graphic]',
+        'tags': ['printmaking', 'graphic'],
+        'description': 'Screen-print poster style with bold ink layers, limited palette discipline, and strong graphic impact.',
+        'instruction': 'Render as a screen-printed poster with layered ink passes, limited but intentional color palette, strong shape separation, and crisp graphic hierarchy. Preserve the tactile poster-print feel and overprint logic rather than full-spectrum digital gradients.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+    {
+        'key': 'stained_glass',
+        'label': 'Stained Glass [decorative] [craft]',
+        'tags': ['decorative', 'craft'],
+        'description': 'Stained-glass style with leaded segment boundaries, luminous color sections, and ornamental light-driven patterning.',
+        'instruction': 'Render with stained-glass logic using bold segment outlines, jewel-like color panes, strong silhouette simplification, and decorative symmetry or rhythm. Preserve the feel of assembled colored glass rather than painted illustration.',
+        'main_category': 'Craft / Decorative / Material-Driven Styles',
+    },
+]

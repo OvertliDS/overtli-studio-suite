@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from ..types import PromptStyle
+
+STYLES: list[PromptStyle] = [
+    {
+        'key': 'album_cover',
+        'label': 'Album Cover [design] [music]',
+        'tags': ['design', 'music'],
+        'description': 'Album-cover style with strong square-format composition, memorable identity, and emotionally aligned visual tone.',
+        'instruction': 'Design as album-cover artwork with a clear central identity, cohesive mood, and strong cover-readability at both full size and thumbnail scale. Preserve memorability and aesthetic unity without overloading the frame with disconnected elements.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'banner_design',
+        'label': 'Banner Design [design] [marketing]',
+        'tags': ['design', 'marketing', 'banner', 'print'],
+        'description': 'Wide-format banner style with oversized messaging, distance readability, and event or retail display clarity.',
+        'instruction': 'Design as a banner with strong large-scale hierarchy, high-distance readability, clear focal messaging, and disciplined layout spacing. Preserve strong contrast, limited but effective text, and display-oriented clarity without overcrowding the format.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'billboard_design',
+        'label': 'Billboard Design [design] [advertising]',
+        'tags': ['design', 'advertising', 'billboard', 'marketing'],
+        'description': 'Billboard style with extreme distance-readability, bold visual simplicity, and immediate advertising clarity.',
+        'instruction': 'Design as a billboard with oversized focal message, minimal essential text, bold contrast, and rapid readability from afar. Preserve strong ad clarity and simplified hierarchy, avoiding dense details or small print that would fail at scale.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'book_cover',
+        'label': 'Book Cover [design] [publishing]',
+        'tags': ['design', 'publishing'],
+        'description': 'Book-cover style with genre-aware composition, strong focal concept, and publishing-friendly visual hierarchy.',
+        'instruction': 'Compose as book-cover artwork with clear title-safe zones, strong genre signaling, and a compelling central concept. Keep the design readable, market-aware, and cover-effective without turning it into a generic poster.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'poster_event_design',
+        'label': 'Event Poster [design] [poster]',
+        'tags': ['design', 'poster', 'event', 'marketing'],
+        'description': 'Event-poster style with bold focal imagery, strong headline hierarchy, and immediate promotional readability.',
+        'instruction': 'Compose as an event poster with clear top-level messaging, a dominant visual focal point, disciplined typography, and strong scanability from a distance. Preserve readable date, venue, and supporting details while keeping the design energetic, cohesive, and promotional rather than cluttered.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'poster_design',
+        'label': 'Poster Design [design] [poster]',
+        'tags': ['design', 'poster'],
+        'description': 'Poster-design style with strong headline hierarchy, clear focal imagery, and immediate communication impact.',
+        'instruction': 'Compose as a poster with clear visual hierarchy, bold focal structure, disciplined spacing, and readable messaging zones. Preserve graphic impact and scanability without collapsing into overcrowded layout noise.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'presentation_cover',
+        'label': 'Presentation / Pitch Cover [design] [business]',
+        'tags': ['design', 'business', 'presentation', 'cover'],
+        'description': 'Presentation-cover style with strong title hierarchy, clean executive polish, and business-ready visual confidence.',
+        'instruction': 'Design as a presentation or pitch-deck cover with clean hierarchy, concise messaging, strong brand alignment, and polished professional composition. Preserve readability, premium business tone, and uncluttered focal structure rather than overdesigned poster-like visuals.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'social_media_post_design',
+        'label': 'Social Media Post [design] [social]',
+        'tags': ['design', 'social', 'marketing', 'digital'],
+        'description': 'Platform-friendly social-post style with high thumbnail impact, concise hierarchy, and mobile-first visual readability.',
+        'instruction': 'Design as a social media post with bold focal hierarchy, mobile-readable typography, efficient use of space, and high scroll-stopping clarity. Preserve strong contrast, compact messaging, and clean layout rhythm while avoiding print-style overcrowding or tiny unreadable details.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'social_story_design',
+        'label': 'Social Story / Vertical Promo [design] [social]',
+        'tags': ['design', 'social', 'story', 'vertical'],
+        'description': 'Vertical story-format design style with strong top-to-bottom flow, mobile readability, and fast-impact promotional hierarchy.',
+        'instruction': 'Design as a vertical story or reel promo with mobile-first composition, bold focal messaging, and clear vertical information flow. Preserve large readable type, strong contrast, clean spacing, and quick-glance usability appropriate for social story formats.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+    {
+        'key': 'youtube_thumbnail_style',
+        'label': 'YouTube Thumbnail [design] [thumbnail]',
+        'tags': ['design', 'thumbnail', 'social', 'marketing'],
+        'description': 'High-impact thumbnail style with oversized focal hierarchy, strong emotion or concept readability, and small-scale clickability.',
+        'instruction': 'Design as a YouTube-style thumbnail with immediate visual clarity at tiny sizes, oversized focal elements, strong contrast, and concise headline logic. Preserve clickability, instant subject recognition, and strong composition without overcrowding the frame with too much text or too many competing elements.',
+        'main_category': 'Editorial / Marketing / Cover Design',
+    },
+]

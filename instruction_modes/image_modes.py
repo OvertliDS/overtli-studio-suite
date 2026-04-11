@@ -1,5 +1,5 @@
 # 🖼️ Image Instruction Mode Definitions
-# Applies to: GZ_TextEnhancer (vision), GZ_LMStudioTextEnhancer, GZ_ImageGen
+# Applies to: GZ_TextEnhancer (vision), GZ_LLMTextEnhancer, GZ_ImageGen
 
 """
 Image-related instruction modes for vision analysis and image generation.
@@ -253,6 +253,7 @@ NARRATIVE_MODES = {
 # ============================================================================
 
 IMAGE_MODES = {
+    "Off": "",
     **VISION_MODES,
     **IMAGE_GEN_MODES,
     **EDITING_MODES,

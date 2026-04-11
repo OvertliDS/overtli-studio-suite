@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from ..types import PromptStyle
+
+STYLES: list[PromptStyle] = [
+    {
+        'key': 'abstract_expressionist',
+        'label': 'Abstract Expressionist [abstract] [painting]',
+        'tags': ['abstract', 'painting'],
+        'description': 'Abstract-expressionist style with emotional brush energy, layered gesture, and bold painterly movement.',
+        'instruction': 'Render as abstract expressionist painting with expressive mark-making, gestural rhythm, layered paint behavior, and emotionally charged composition. Preserve the feeling of intentional force and painterly depth without turning the work into chaotic, texture-only noise.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'abstract_geometric',
+        'label': 'Abstract Geometric [abstract] [geometric]',
+        'tags': ['abstract', 'geometric'],
+        'description': 'Geometric abstract-art style with structured forms, disciplined color relationships, and strong compositional balance.',
+        'instruction': 'Render as geometric abstract art with clean shapes, deliberate spatial organization, controlled color blocking, and strong visual rhythm. Preserve compositional intent, negative space balance, and clear hierarchy rather than random shape scattering or decorative clutter.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'biomorphic_abstract',
+        'label': 'Biomorphic Abstract [abstract] [organic]',
+        'tags': ['abstract', 'organic'],
+        'description': 'Biomorphic abstract style with organic forms, fluid contours, and natural-growth visual rhythm.',
+        'instruction': 'Render as biomorphic abstraction using soft organic shapes, flowing transitions, and a sense of natural or cellular growth. Preserve elegance, movement, and formal cohesion without collapsing into random blobs or decorative surreal clutter.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'color_field_abstract',
+        'label': 'Color Field Abstract [abstract] [painting]',
+        'tags': ['abstract', 'painting'],
+        'description': 'Color-field abstract style with large atmospheric color zones, meditative tonal shifts, and minimal compositional interruption.',
+        'instruction': 'Render as color-field abstraction with broad planes of color, subtle transitions, restrained structure, and immersive visual calm. Preserve softness, tonal depth, and contemplative balance rather than cluttering the frame with unnecessary shape complexity.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'constructivist_abstract',
+        'label': 'Constructivist Abstract [abstract] [graphic]',
+        'tags': ['abstract', 'graphic'],
+        'description': 'Constructivist-inspired abstract style with bold structural diagonals, industrial geometry, and graphic ideological force.',
+        'instruction': 'Render as constructivist abstraction using strong diagonals, geometric blocks, limited high-contrast palette logic, and poster-like formal power. Preserve tension, order, and graphic clarity rather than turning the composition into generic collage clutter.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'fluid_abstract',
+        'label': 'Fluid Abstract [abstract] [organic]',
+        'tags': ['abstract', 'organic'],
+        'description': 'Fluid abstract style with liquid motion, marbling behavior, and flowing color interaction.',
+        'instruction': 'Render as fluid abstraction with swirling motion, layered liquid transitions, marbled textures, and organic color blending. Preserve flow, movement, and compositional coherence without turning the surface into muddy uncontrolled mixing.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'fractured_abstract',
+        'label': 'Fractured Abstract [abstract] [dynamic]',
+        'tags': ['abstract', 'dynamic'],
+        'description': 'Fractured abstract style with broken planes, directional energy, and dynamic compositional disruption.',
+        'instruction': 'Render as a fractured abstract composition with broken planes, angular energy, layered shards, and controlled visual disruption. Preserve strong structural rhythm and hierarchy rather than random fragmentation that makes the piece unreadable.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'minimal_abstract',
+        'label': 'Minimal Abstract [abstract] [minimal]',
+        'tags': ['abstract', 'minimal'],
+        'description': 'Minimal abstract style with reduced formal language, strong spacing, and highly controlled visual restraint.',
+        'instruction': 'Render as minimal abstract art with sparse forms, strong negative space, restrained palette logic, and deliberate compositional tension. Preserve elegance and clarity through reduction, avoiding decorative extras that weaken the minimalist impact.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'sacred_geometry_abstract',
+        'label': 'Sacred Geometry Abstract [abstract] [symbolic]',
+        'tags': ['abstract', 'symbolic'],
+        'description': 'Sacred-geometry abstract style with radial precision, symbolic harmony, and mathematically ordered pattern logic.',
+        'instruction': 'Render as sacred-geometry abstraction with precise radial symmetry, mathematically disciplined forms, and a sense of symbolic harmony. Preserve geometric clarity, centered order, and meditative balance without muddy ornament or imprecise construction.',
+        'main_category': 'Abstract Art',
+    },
+    {
+        'key': 'textural_abstract',
+        'label': 'Textural Abstract [abstract] [material]',
+        'tags': ['abstract', 'material'],
+        'description': 'Textural abstract style with surface-rich detail, tactile layering, and material-driven composition.',
+        'instruction': 'Render as textural abstract art with layered material surfaces, tactile marks, relief-like variation, and strong visual depth through texture. Preserve composition and material hierarchy so the piece feels intentional rather than like uncontrolled surface noise.',
+        'main_category': 'Abstract Art',
+    },
+]

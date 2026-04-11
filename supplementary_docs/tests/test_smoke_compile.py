@@ -17,29 +17,86 @@ class TestSmokeCompile(unittest.TestCase):
 
         files = [
             node_root / "__init__.py",
+            node_root / "base_node.py",
             node_root / "shared_utils.py",
             node_root / "suite_config.py",
             node_root / "settings_store.py",
             node_root / "exceptions.py",
             node_root / "image_utils.py",
-            node_root / "copilot_agent.py",
-            node_root / "lm_studio_vision.py",
-            node_root / "advanced_text_enhancer.py",
-            node_root / "audio_style_presets.py",
-            node_root / "provider_settings.py",
-            node_root / "prompt_styles.py",
             node_root / "prompt_library_store.py",
-            node_root / "prompt_library_node.py",
-            node_root / "style_stack_node.py",
-            node_root / "pollinations" / "text_enhancer.py",
-            node_root / "pollinations" / "model_catalog.py",
-            node_root / "pollinations" / "image_gen.py",
-            node_root / "pollinations" / "video_gen.py",
-            node_root / "pollinations" / "text_to_speech.py",
-            node_root / "pollinations" / "speech_to_text.py",
-            node_root / "pollinations" / "text_to_audio.py",
-            node_root / "pollinations" / "compat_retry.py",
-            node_root / "pollinations" / "media_upload.py",
+            node_root / "engine" / "__init__.py",
+            node_root / "engine" / "openai_compatible.py",
+            node_root / "engine" / "pollinations" / "__init__.py",
+            node_root / "engine" / "pollinations" / "text_enhancer.py",
+            node_root / "engine" / "pollinations" / "model_catalog.py",
+            node_root / "engine" / "pollinations" / "image_gen.py",
+            node_root / "engine" / "pollinations" / "video_gen.py",
+            node_root / "engine" / "pollinations" / "text_to_speech.py",
+            node_root / "engine" / "pollinations" / "speech_to_text.py",
+            node_root / "engine" / "pollinations" / "text_to_audio.py",
+            node_root / "engine" / "pollinations" / "compat_retry.py",
+            node_root / "engine" / "pollinations" / "media_upload.py",
+            node_root / "styles" / "__init__.py",
+            node_root / "styles" / "types.py",
+            node_root / "styles" / "catalog.py",
+            node_root / "styles" / "api.py",
+            node_root / "styles" / "audio_styles" / "__init__.py",
+            node_root / "styles" / "audio_styles" / "types.py",
+            node_root / "styles" / "audio_styles" / "catalog.py",
+            node_root / "styles" / "audio_styles" / "api.py",
+            node_root / "styles" / "audio_styles" / "categories" / "__init__.py",
+            node_root / "styles" / "audio_styles" / "categories" / "tts_styles.py",
+            node_root / "styles" / "audio_styles" / "categories" / "stt_styles.py",
+            node_root / "styles" / "audio_styles" / "categories" / "ttaudio_styles.py",
+            node_root / "nodes" / "__init__.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "__init__.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "constants.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "routing.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "dispatch.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "node.py",
+            node_root / "nodes" / "copilot_agent" / "__init__.py",
+            node_root / "nodes" / "copilot_agent" / "node.py",
+            node_root / "nodes" / "llm_text_enhancer" / "__init__.py",
+            node_root / "nodes" / "llm_text_enhancer" / "node.py",
+            node_root / "nodes" / "openai_compatible_text_enhancer" / "__init__.py",
+            node_root / "nodes" / "openai_compatible_text_enhancer" / "node.py",
+            node_root / "nodes" / "provider_settings" / "__init__.py",
+            node_root / "nodes" / "provider_settings" / "node.py",
+            node_root / "nodes" / "prompt_library" / "__init__.py",
+            node_root / "nodes" / "prompt_library" / "node.py",
+            node_root / "nodes" / "style_stack" / "__init__.py",
+            node_root / "nodes" / "style_stack" / "node.py",
+            node_root / "nodes" / "pollinations" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "text_enhancer" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "text_enhancer" / "constants.py",
+            node_root / "nodes" / "pollinations" / "text_enhancer" / "routing.py",
+            node_root / "nodes" / "pollinations" / "text_enhancer" / "dispatch.py",
+            node_root / "nodes" / "pollinations" / "text_enhancer" / "node.py",
+            node_root / "nodes" / "pollinations" / "image_gen" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "image_gen" / "constants.py",
+            node_root / "nodes" / "pollinations" / "image_gen" / "routing.py",
+            node_root / "nodes" / "pollinations" / "image_gen" / "dispatch.py",
+            node_root / "nodes" / "pollinations" / "image_gen" / "node.py",
+            node_root / "nodes" / "pollinations" / "video_gen" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "video_gen" / "constants.py",
+            node_root / "nodes" / "pollinations" / "video_gen" / "routing.py",
+            node_root / "nodes" / "pollinations" / "video_gen" / "dispatch.py",
+            node_root / "nodes" / "pollinations" / "video_gen" / "node.py",
+            node_root / "nodes" / "pollinations" / "text_to_speech" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "text_to_speech" / "constants.py",
+            node_root / "nodes" / "pollinations" / "text_to_speech" / "routing.py",
+            node_root / "nodes" / "pollinations" / "text_to_speech" / "dispatch.py",
+            node_root / "nodes" / "pollinations" / "text_to_speech" / "node.py",
+            node_root / "nodes" / "pollinations" / "speech_to_text" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "speech_to_text" / "constants.py",
+            node_root / "nodes" / "pollinations" / "speech_to_text" / "routing.py",
+            node_root / "nodes" / "pollinations" / "speech_to_text" / "dispatch.py",
+            node_root / "nodes" / "pollinations" / "speech_to_text" / "node.py",
+            node_root / "nodes" / "pollinations" / "text_to_audio" / "__init__.py",
+            node_root / "nodes" / "pollinations" / "text_to_audio" / "constants.py",
+            node_root / "nodes" / "pollinations" / "text_to_audio" / "routing.py",
+            node_root / "nodes" / "pollinations" / "text_to_audio" / "dispatch.py",
+            node_root / "nodes" / "pollinations" / "text_to_audio" / "node.py",
             node_root / "instruction_modes" / "__init__.py",
             node_root / "instruction_modes" / "text_modes.py",
             node_root / "instruction_modes" / "image_modes.py",
@@ -66,12 +123,13 @@ class TestNodeRegistration(unittest.TestCase):
         text = init_path.read_text(encoding="utf-8")
 
         self.assertIn("GZ_CopilotAgent", text)
+        self.assertIn("GZ_LLMTextEnhancer", text)
         self.assertIn("GZ_LMStudioTextEnhancer", text)
         self.assertIn("GZ_AdvancedTextEnhancer", text)
+        self.assertIn("GZ_OpenAICompatibleTextEnhancer", text)
         self.assertIn("GZ_ProviderSettings", text)
         self.assertIn("GZ_PromptLibraryNode", text)
         self.assertIn("GZ_StyleStackNode", text)
-        self.assertNotIn("GZ_OpenAICompatibleTextEnhancer", text)
         self.assertNotIn("GZ_EnhancedPreviewText", text)
 
     def test_main_init_registers_pollinations_audio_nodes(self):
@@ -87,7 +145,7 @@ class TestNodeRegistration(unittest.TestCase):
 class TestAdvancedModeFamilies(unittest.TestCase):
     def test_advanced_node_exposes_grouped_mode_family_inputs(self):
         node_root = _resolve_node_root()
-        advanced_path = node_root / "advanced_text_enhancer.py"
+        advanced_path = node_root / "nodes" / "advanced_text_enhancer" / "node.py"
         text = advanced_path.read_text(encoding="utf-8")
 
         self.assertIn('"text_mode"', text)
@@ -97,6 +155,12 @@ class TestAdvancedModeFamilies(unittest.TestCase):
         self.assertIn('"stt_mode"', text)
         self.assertIn('"ttaudio_mode"', text)
         self.assertIn('"active_engine"', text)
+        self.assertIn('text (pollinations, lm_studio, copilot, openai_compatible)', text)
+        self.assertIn('image (pollinations, openai_compatible)', text)
+        self.assertIn('video (pollinations, openai_compatible)', text)
+        self.assertIn('_normalize_active_engine_name', text)
+        self.assertIn('_validate_provider_engine', text)
+        self.assertIn("Supported engines for provider", text)
         self.assertIn('"pollinations_model"', text)
         self.assertIn('"lm_studio_model"', text)
         self.assertIn('"openai_model_override"', text)
@@ -121,9 +185,9 @@ class TestGroupedModeFamiliesAcrossNodes(unittest.TestCase):
         node_root = _resolve_node_root()
 
         grouped_mode_files = [
-            node_root / "pollinations" / "text_enhancer.py",
-            node_root / "lm_studio_vision.py",
-            node_root / "copilot_agent.py",
+            node_root / "engine" / "pollinations" / "text_enhancer.py",
+            node_root / "nodes" / "llm_text_enhancer" / "node.py",
+            node_root / "nodes" / "copilot_agent" / "node.py",
         ]
 
         for path in grouped_mode_files:
@@ -142,11 +206,18 @@ class TestGroupedModeFamiliesAcrossNodes(unittest.TestCase):
             self.assertIn('"additional_styles"', text, msg=f"Missing additional styles input in {path}")
             self.assertIn("resolve_mode_family_preset", text, msg=f"Missing mode-family resolver in {path}")
 
-        advanced_text = (node_root / "advanced_text_enhancer.py").read_text(encoding="utf-8")
+        advanced_text = (node_root / "nodes" / "advanced_text_enhancer" / "node.py").read_text(encoding="utf-8")
         self.assertIn('"active_engine"', advanced_text)
         self.assertIn('"additional_styles"', advanced_text)
         self.assertIn("resolve_mode_family_preset", advanced_text)
-        self.assertIn("_OpenAICompatibleEngine", advanced_text)
+        self.assertIn("GZ_OpenAICompatibleTextEnhancer", advanced_text)
+
+        openai_node_text = (
+            node_root / "nodes" / "openai_compatible_text_enhancer" / "node.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"active_engine"', openai_node_text)
+        self.assertIn('"video_gen"', openai_node_text)
+        self.assertIn('"speech_to_text_gen"', openai_node_text)
 
 
 class TestModeSystemPromptLayering(unittest.TestCase):
@@ -163,7 +234,7 @@ class TestModeSystemPromptLayering(unittest.TestCase):
 
     def test_copilot_uses_dynamic_mode_category_hint(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
         self.assertIn("infer_mode_category", text)
@@ -172,18 +243,22 @@ class TestModeSystemPromptLayering(unittest.TestCase):
 
 
 class TestCopilotAgentResilience(unittest.TestCase):
-    def test_copilot_node_exposes_auth_controls(self):
+    def test_copilot_node_keeps_auth_and_retry_controls_internal(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
-        self.assertIn("auth_mode", text)
-        self.assertIn("auth_status_only", text)
-        self.assertIn("reconnect", text)
+        self.assertNotIn('"auth_mode": (_AUTH_MODE_OPTIONS, {"default": "Auto"})', text)
+        self.assertNotIn('"auth_status_only": (', text)
+        self.assertNotIn('"reconnect": (', text)
+        self.assertNotIn('"retry_cached_vision_models": (', text)
+        self.assertIn('"vision_enabled"', text)
+        self.assertIn('auth_mode: str = "Auto"', text)
+        self.assertIn("retry_cached_vision_models: bool = True", text)
 
     def test_copilot_node_uses_prompt_mode_with_capability_cache(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
         self.assertIn('"--prompt"', text)
@@ -193,16 +268,36 @@ class TestCopilotAgentResilience(unittest.TestCase):
 
     def test_copilot_long_prompts_use_stdin_transport_instead_of_prompt_file_indirection(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
         self.assertIn("stdin_text", text)
         self.assertIn("stdin prompt transport", text)
         self.assertNotIn("Read the complete prompt from this local UTF-8 file", text)
 
+    def test_copilot_image_context_uses_attachment_mentions_not_plain_paths(self):
+        node_root = _resolve_node_root()
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
+        text = copilot_path.read_text(encoding="utf-8")
+
+        self.assertIn('Reference image attachments:\\n', text)
+        self.assertIn('safe_path = str(path).replace("\\\\", "/")', text)
+        self.assertIn('context_lines.append(f\'@"{safe_path}"\')', text)
+        self.assertIn('context_lines.append(f"@{safe_path}")', text)
+        self.assertIn('or current_context_paths or "\\n" in cli_prompt', text)
+        self.assertNotIn('Context files:\\n', text)
+
+    def test_copilot_cached_vision_failures_do_not_silently_block_retry_by_default(self):
+        node_root = _resolve_node_root()
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
+        text = copilot_path.read_text(encoding="utf-8")
+
+        self.assertIn("retry_cached_vision_models: bool = True", text)
+        self.assertIn("image attachments will be retried because vision is enabled", text)
+
     def test_copilot_model_options_prefer_local_cli_discovery(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
         self.assertIn('_discover_copilot_cli_models()', text)
@@ -211,7 +306,7 @@ class TestCopilotAgentResilience(unittest.TestCase):
 
     def test_copilot_error_classifier_covers_quota_capacity_and_model_failures(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
         self.assertIn('"rate_limited"', text)
@@ -223,7 +318,7 @@ class TestCopilotAgentResilience(unittest.TestCase):
 
     def test_copilot_auto_allow_all_tools_notice_stays_out_of_model_output(self):
         node_root = _resolve_node_root()
-        copilot_path = node_root / "copilot_agent.py"
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         text = copilot_path.read_text(encoding="utf-8")
 
         self.assertIn("auto-enabling it for reliability", text)
@@ -236,7 +331,7 @@ class TestCopilotAgentResilience(unittest.TestCase):
 class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
     def test_speech_to_text_supports_comfy_audio_input(self):
         node_root = _resolve_node_root()
-        stt_path = node_root / "pollinations" / "speech_to_text.py"
+        stt_path = node_root / "engine" / "pollinations" / "speech_to_text.py"
         text = stt_path.read_text(encoding="utf-8")
 
         self.assertIn('"audio": ("AUDIO",)', text)
@@ -244,7 +339,7 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
         self.assertIn("_write_audio_input_to_temp_wav", text)
 
     def test_pollinations_media_nodes_return_native_media_outputs(self):
-        node_root = _resolve_node_root() / "pollinations"
+        node_root = _resolve_node_root() / "engine" / "pollinations"
 
         tts_text = (node_root / "text_to_speech.py").read_text(encoding="utf-8")
         ttaudio_text = (node_root / "text_to_audio.py").read_text(encoding="utf-8")
@@ -256,7 +351,7 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
 
     def test_text_enhancer_uses_vision_filtered_catalog_models(self):
         node_root = _resolve_node_root()
-        enhancer_path = node_root / "pollinations" / "text_enhancer.py"
+        enhancer_path = node_root / "engine" / "pollinations" / "text_enhancer.py"
         text = enhancer_path.read_text(encoding="utf-8")
 
         self.assertIn("fetch_pollinations_text_models", text)
@@ -265,7 +360,7 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
 
     def test_model_catalog_exposes_audio_task_buckets(self):
         node_root = _resolve_node_root()
-        catalog_path = node_root / "pollinations" / "model_catalog.py"
+        catalog_path = node_root / "engine" / "pollinations" / "model_catalog.py"
         text = catalog_path.read_text(encoding="utf-8")
 
         self.assertIn("generation_speech", text)
@@ -276,8 +371,8 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
 
     def test_pollinations_image_and_video_nodes_expose_style_picker(self):
         node_root = _resolve_node_root()
-        image_path = node_root / "pollinations" / "image_gen.py"
-        video_path = node_root / "pollinations" / "video_gen.py"
+        image_path = node_root / "engine" / "pollinations" / "image_gen.py"
+        video_path = node_root / "engine" / "pollinations" / "video_gen.py"
 
         image_text = image_path.read_text(encoding="utf-8")
         video_text = video_path.read_text(encoding="utf-8")
@@ -293,8 +388,8 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
 
     def test_pollinations_image_and_video_nodes_use_standardized_image_socket_name(self):
         node_root = _resolve_node_root()
-        image_path = node_root / "pollinations" / "image_gen.py"
-        video_path = node_root / "pollinations" / "video_gen.py"
+        image_path = node_root / "engine" / "pollinations" / "image_gen.py"
+        video_path = node_root / "engine" / "pollinations" / "video_gen.py"
 
         image_text = image_path.read_text(encoding="utf-8")
         video_text = video_path.read_text(encoding="utf-8")
@@ -306,7 +401,7 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
 
     def test_style_stack_node_exposes_seven_style_slots(self):
         node_root = _resolve_node_root()
-        style_stack_path = node_root / "style_stack_node.py"
+        style_stack_path = node_root / "nodes" / "style_stack" / "node.py"
         text = style_stack_path.read_text(encoding="utf-8")
 
         self.assertIn('"style_preset_1"', text)
@@ -316,54 +411,57 @@ class TestPollinationsAudioAndModelDiscovery(unittest.TestCase):
 
 
 class TestPreviewAndPackagePolish(unittest.TestCase):
-    def test_standalone_preview_and_openai_nodes_are_not_registered(self):
+    def test_preview_node_is_not_registered_but_openai_node_is_registered(self):
         node_root = _resolve_node_root()
         init_path = node_root / "__init__.py"
         text = init_path.read_text(encoding="utf-8")
 
         self.assertNotIn("GZ_EnhancedPreviewText", text)
-        self.assertNotIn("GZ_OpenAICompatibleTextEnhancer", text)
+        self.assertIn("GZ_OpenAICompatibleTextEnhancer", text)
 
     def test_package_version_matches_current_release_line(self):
         node_root = _resolve_node_root()
         init_path = node_root / "__init__.py"
         text = init_path.read_text(encoding="utf-8")
 
-        self.assertIn('__version__ = "0.7.4"', text)
+        self.assertIn('__version__ = "1.1.0"', text)
 
     def test_secret_persistence_defaults_are_session_only(self):
         node_root = _resolve_node_root()
 
         files = [
-            node_root / "advanced_text_enhancer.py",
-            node_root / "lm_studio_vision.py",
-            node_root / "pollinations" / "text_enhancer.py",
-            node_root / "pollinations" / "image_gen.py",
-            node_root / "pollinations" / "video_gen.py",
-            node_root / "pollinations" / "text_to_speech.py",
-            node_root / "pollinations" / "speech_to_text.py",
-            node_root / "pollinations" / "text_to_audio.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "node.py",
+            node_root / "nodes" / "llm_text_enhancer" / "node.py",
+            node_root / "engine" / "pollinations" / "text_enhancer.py",
+            node_root / "engine" / "pollinations" / "image_gen.py",
+            node_root / "engine" / "pollinations" / "video_gen.py",
+            node_root / "engine" / "pollinations" / "text_to_speech.py",
+            node_root / "engine" / "pollinations" / "speech_to_text.py",
+            node_root / "engine" / "pollinations" / "text_to_audio.py",
         ]
 
         for path in files:
             text = path.read_text(encoding="utf-8")
             self.assertIn("persist_", text, msg=f"Expected persistence controls in {path}")
 
-        advanced_path = node_root / "advanced_text_enhancer.py"
+        advanced_path = node_root / "nodes" / "advanced_text_enhancer" / "node.py"
         advanced_text = advanced_path.read_text(encoding="utf-8")
         self.assertIn('"persist_provider_settings"', advanced_text)
         self.assertIn("persist_provider_settings: bool = True", advanced_text)
-        self.assertIn("persist_api_settings", advanced_text)
-        self.assertIn("persist_api_settings: bool = True", advanced_text)
 
-        copilot_path = node_root / "copilot_agent.py"
+        openai_node_path = node_root / "nodes" / "openai_compatible_text_enhancer" / "node.py"
+        openai_node_text = openai_node_path.read_text(encoding="utf-8")
+        self.assertIn("persist_api_settings", openai_node_text)
+        self.assertIn("persist_api_settings: bool = True", openai_node_text)
+
+        copilot_path = node_root / "nodes" / "copilot_agent" / "node.py"
         copilot_text = copilot_path.read_text(encoding="utf-8")
         self.assertIn("persist_copilot_executable", copilot_text)
         self.assertIn("persist_copilot_executable: bool = True", copilot_text)
 
     def test_provider_settings_warns_that_saved_secrets_are_local_file_persistence(self):
         node_root = _resolve_node_root()
-        provider_settings_path = node_root / "provider_settings.py"
+        provider_settings_path = node_root / "nodes" / "provider_settings" / "node.py"
         text = provider_settings_path.read_text(encoding="utf-8")
 
         self.assertIn("not OS-backed secret-vault storage", text)
@@ -401,20 +499,24 @@ class TestCentralizedLocalConfigArchitecture(unittest.TestCase):
         node_root = _resolve_node_root()
 
         files = [
-            node_root / "advanced_text_enhancer.py",
-            node_root / "lm_studio_vision.py",
-            node_root / "copilot_agent.py",
-            node_root / "pollinations" / "text_enhancer.py",
-            node_root / "pollinations" / "image_gen.py",
-            node_root / "pollinations" / "video_gen.py",
-            node_root / "pollinations" / "text_to_speech.py",
-            node_root / "pollinations" / "speech_to_text.py",
-            node_root / "pollinations" / "text_to_audio.py",
+            node_root / "nodes" / "advanced_text_enhancer" / "node.py",
+            node_root / "nodes" / "llm_text_enhancer" / "node.py",
+            node_root / "nodes" / "openai_compatible_text_enhancer" / "node.py",
+            node_root / "nodes" / "copilot_agent" / "node.py",
+            node_root / "engine" / "pollinations" / "text_enhancer.py",
+            node_root / "engine" / "pollinations" / "image_gen.py",
+            node_root / "engine" / "pollinations" / "video_gen.py",
+            node_root / "engine" / "pollinations" / "text_to_speech.py",
+            node_root / "engine" / "pollinations" / "speech_to_text.py",
+            node_root / "engine" / "pollinations" / "text_to_audio.py",
         ]
 
         for path in files:
             text = path.read_text(encoding="utf-8")
-            self.assertIn("resolve_config_value", text, msg=f"Expected centralized config resolution in {path}")
+            if "openai_compatible_text_enhancer" in path.parts:
+                self.assertIn("_OpenAICompatibleEngine", text, msg=f"Expected delegated centralized config engine in {path}")
+            else:
+                self.assertIn("resolve_config_value", text, msg=f"Expected centralized config resolution in {path}")
             self.assertNotIn("API key persisted", text, msg=f"Expected persistence logging to be centralized in {path}")
 
     def test_gitignore_covers_local_runtime_config_artifacts(self):
