@@ -17,6 +17,7 @@ Features:
 import importlib
 import logging
 import os
+import threading
 import time
 from typing import Any, Optional, Tuple
 
@@ -54,6 +55,12 @@ from .model_catalog import extract_display_model_name, fetch_pollinations_text_m
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TEXT_MAX_TOKENS = 750
+_SCHEMA_REFRESH_INTERVAL_SECONDS = 300.0
+_FALLBACK_MODELS = [
+    "openai [text] [vision] [free]",
+    "openai-fast [text] [vision] [free]",
+    "openai-large [text] [vision] [free]",
+]
 
 
 def _extract_model_name(model_display: str) -> str:
@@ -80,29 +87,60 @@ def fetch_text_models() -> list[str]:
     Fetch Pollinations chat models.
     Vision-capable models remain tagged, but text-only models are allowed when no image input is used.
     """
-    fallback_models = [
-        "openai [text] [vision] [free]",
-        "openai-fast [text] [vision] [free]",
-        "openai-large [text] [vision] [free]",
-    ]
-
-    result = fetch_pollinations_text_models(require_vision=False, fallback_models=fallback_models)
+    result = fetch_pollinations_text_models(require_vision=False, fallback_models=_FALLBACK_MODELS)
     logger.info("Pollinations text models refreshed: %s eligible chat model(s)", len(result))
     return result
 
 
 _CACHED_MODELS: Optional[list[str]] = None
+_SCHEMA_REFRESH_LOCK = threading.Lock()
+_SCHEMA_REFRESH_IN_PROGRESS = False
+_SCHEMA_LAST_REFRESH_ATTEMPT = 0.0
 
 
 def get_cached_models() -> list[str]:
     global _CACHED_MODELS
     if _CACHED_MODELS is None:
         _CACHED_MODELS = fetch_text_models()
-    return _CACHED_MODELS
+    return list(_CACHED_MODELS)
+
+
+def _refresh_schema_models_worker() -> None:
+    global _CACHED_MODELS, _SCHEMA_REFRESH_IN_PROGRESS
+    try:
+        models = fetch_text_models()
+        with _SCHEMA_REFRESH_LOCK:
+            _CACHED_MODELS = list(models)
+    finally:
+        with _SCHEMA_REFRESH_LOCK:
+            _SCHEMA_REFRESH_IN_PROGRESS = False
+
+
+def get_schema_models() -> list[str]:
+    """Return cached/fallback choices immediately and refresh in the background."""
+    global _SCHEMA_REFRESH_IN_PROGRESS, _SCHEMA_LAST_REFRESH_ATTEMPT
+    now = time.monotonic()
+    start_refresh = False
+    with _SCHEMA_REFRESH_LOCK:
+        cached = list(_CACHED_MODELS) if _CACHED_MODELS else list(_FALLBACK_MODELS)
+        if (
+            not _SCHEMA_REFRESH_IN_PROGRESS
+            and now - _SCHEMA_LAST_REFRESH_ATTEMPT >= _SCHEMA_REFRESH_INTERVAL_SECONDS
+        ):
+            _SCHEMA_REFRESH_IN_PROGRESS = True
+            _SCHEMA_LAST_REFRESH_ATTEMPT = now
+            start_refresh = True
+    if start_refresh:
+        threading.Thread(
+            target=_refresh_schema_models_worker,
+            name="overtli-pollinations-model-refresh",
+            daemon=True,
+        ).start()
+    return cached
 
 
 def refresh_models() -> list[str]:
-    """Force refresh cached models."""
+    """Force a blocking refresh when explicitly requested."""
     global _CACHED_MODELS
     _CACHED_MODELS = None
     return get_cached_models()
@@ -130,7 +168,7 @@ class GZ_TextEnhancer:
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:
-        model_options = refresh_models()
+        model_options = get_schema_models()
         return {
             "required": {
                 "prompt": (

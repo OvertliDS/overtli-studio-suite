@@ -22,6 +22,11 @@ import importlib
 import io
 import logging
 import os
+import socket
+import threading
+import time
+from urllib.parse import urlparse
+
 import requests
 from typing import Any, Optional, Tuple
 
@@ -53,6 +58,8 @@ logger = logging.getLogger(__name__)
 _DEFAULT_TEXT_MAX_TOKENS = 750
 _CHARS_PER_TOKEN_ESTIMATE = 4
 _LLM_PROVIDER_OPTIONS = ["LM Studio", "Ollama", "OpenAI-Compatible"]
+_DEFAULT_LOCAL_MODEL_OPTIONS = ["auto [local]"]
+_SCHEMA_REFRESH_INTERVAL_SECONDS = 300.0
 _OLLAMA_DEFAULT_BASE_URL = "http://localhost:11434"
 _ENDPOINT_SUFFIXES = (
     "/v1/chat/completions",
@@ -150,6 +157,20 @@ def _normalize_provider(provider: str) -> str:
     return "lm-studio"
 
 
+def _loopback_service_available(base_url: str, timeout_seconds: float = 0.15) -> bool:
+    """Return quickly when a configured loopback provider is not listening."""
+    parsed = urlparse(_normalize_runtime_base_url(base_url))
+    host = (parsed.hostname or "").lower()
+    if host not in {"localhost", "127.0.0.1", "::1"}:
+        return True
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        with socket.create_connection((host, port), timeout=timeout_seconds):
+            return True
+    except OSError:
+        return False
+
+
 def _check_lmstudio_connection(
     timeout_seconds: int = 5,
     headers: Optional[dict[str, str]] = None,
@@ -185,7 +206,11 @@ def _check_lmstudio_connection(
 def fetch_lmstudio_models() -> list[str]:
     """Fetch local model list from configured local endpoint(s) and decorate entries."""
     cfg = get_config().lm_studio
-    base = ["auto [local]"]
+    base = list(_DEFAULT_LOCAL_MODEL_OPTIONS)
+
+    if not _loopback_service_available(cfg.base_url):
+        logger.debug("LM Studio model discovery skipped: %s is not listening", cfg.base_url)
+        return base
 
     try:
         resolved_api_key = resolve_config_value(
@@ -232,23 +257,60 @@ def fetch_lmstudio_models() -> list[str]:
             raise last_error
         return base
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to fetch local models: %s", exc)
+        logger.debug("Local model discovery unavailable: %s", exc)
         return base
 
 
 _CACHED_MODELS: Optional[list[str]] = None
+_SCHEMA_REFRESH_LOCK = threading.Lock()
+_SCHEMA_REFRESH_IN_PROGRESS = False
+_SCHEMA_LAST_REFRESH_ATTEMPT = 0.0
 
 
 def get_cached_models() -> list[str]:
-    """Get cached LM Studio model options."""
+    """Blocking model discovery for explicit refresh/use paths."""
     global _CACHED_MODELS
     if _CACHED_MODELS is None:
         _CACHED_MODELS = fetch_lmstudio_models()
-    return _CACHED_MODELS
+    return list(_CACHED_MODELS)
+
+
+def _refresh_schema_models_worker() -> None:
+    global _CACHED_MODELS, _SCHEMA_REFRESH_IN_PROGRESS
+    try:
+        models = fetch_lmstudio_models()
+        with _SCHEMA_REFRESH_LOCK:
+            _CACHED_MODELS = list(models)
+    finally:
+        with _SCHEMA_REFRESH_LOCK:
+            _SCHEMA_REFRESH_IN_PROGRESS = False
+
+
+def get_schema_models() -> list[str]:
+    """Return choices immediately; refresh discovery off the object_info path."""
+    global _SCHEMA_REFRESH_IN_PROGRESS, _SCHEMA_LAST_REFRESH_ATTEMPT
+    now = time.monotonic()
+    start_refresh = False
+    with _SCHEMA_REFRESH_LOCK:
+        cached = list(_CACHED_MODELS) if _CACHED_MODELS else list(_DEFAULT_LOCAL_MODEL_OPTIONS)
+        if (
+            not _SCHEMA_REFRESH_IN_PROGRESS
+            and now - _SCHEMA_LAST_REFRESH_ATTEMPT >= _SCHEMA_REFRESH_INTERVAL_SECONDS
+        ):
+            _SCHEMA_REFRESH_IN_PROGRESS = True
+            _SCHEMA_LAST_REFRESH_ATTEMPT = now
+            start_refresh = True
+    if start_refresh:
+        threading.Thread(
+            target=_refresh_schema_models_worker,
+            name="overtli-lmstudio-model-refresh",
+            daemon=True,
+        ).start()
+    return cached
 
 
 def refresh_models() -> list[str]:
-    """Force refresh cached LM Studio models."""
+    """Force a blocking refresh when explicitly requested."""
     global _CACHED_MODELS
     _CACHED_MODELS = None
     return get_cached_models()
@@ -426,8 +488,7 @@ class GZ_LLMTextEnhancer(GZBaseNode):
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:
-        cfg = get_config().lm_studio
-        model_options = refresh_models()
+        model_options = get_schema_models()
         return {
             "required": {
                 "provider": (
