@@ -157,6 +157,7 @@ def _merge_catalog_entries(base: dict[str, Any], incoming: dict[str, Any]) -> di
         "features",
         "tags",
         "modalities",
+        "aliases",
     ):
         merged[field] = _merge_token_lists(base.get(field, []), incoming.get(field, []))
 
@@ -402,13 +403,21 @@ def _format_display_name(name: str, tags: list[str]) -> str:
     return f"{name} {' '.join(deduped)}".strip()
 
 
+def _catalog_with_aliases(force_refresh: bool = False):
+    """Keep saved ComfyUI dropdown values valid when catalog names change."""
+    for entry in _fetch_catalog(force_refresh=force_refresh):
+        yield entry
+        for alias in entry.get("aliases") or []:
+            yield {**entry, "id": alias, "name": alias}
+
+
 def get_pollinations_model_entry(model_name: str, force_refresh: bool = False) -> dict[str, Any] | None:
     """Return a normalized catalog entry for a raw model id, if present."""
     raw_name = extract_display_model_name(model_name).lower()
     if not raw_name:
         return None
 
-    for entry in _fetch_catalog(force_refresh=force_refresh):
+    for entry in _catalog_with_aliases(force_refresh=force_refresh):
         if _extract_model_name(entry).lower() == raw_name:
             return entry
     return None
@@ -527,7 +536,7 @@ def _fetch_catalog(force_refresh: bool = False) -> list[dict[str, Any]]:
 
 def fetch_pollinations_text_models(require_vision: bool, fallback_models: list[str]) -> list[str]:
     """Return text chat models with optional strict vision capability filtering."""
-    entries = _fetch_catalog()
+    entries = _catalog_with_aliases()
 
     discovered: list[str] = []
     seen: set[str] = set()
@@ -561,7 +570,7 @@ def fetch_pollinations_modality_models(modality: str, fallback_models: list[str]
     if modality == "text":
         return fetch_pollinations_text_models(require_vision=False, fallback_models=fallback_models)
 
-    entries = _fetch_catalog()
+    entries = _catalog_with_aliases()
 
     discovered: list[str] = []
     seen: set[str] = set()
@@ -603,7 +612,7 @@ def fetch_pollinations_audio_models_for_task(task: str, fallback_models: list[st
     if normalized_task not in {"transcription", "generation", "generation_speech", "generation_music"}:
         raise ValueError(f"Unsupported audio task '{task}'")
 
-    entries = _fetch_catalog()
+    entries = _catalog_with_aliases()
 
     discovered: list[str] = []
     seen: set[str] = set()
@@ -664,4 +673,3 @@ def fetch_pollinations_advanced_models() -> list[str]:
             choices.append(option)
 
     return choices
-
