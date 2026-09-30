@@ -195,7 +195,7 @@ class GZ_TextToAudio:
     def INPUT_TYPES(cls) -> dict:
         from ...instruction_modes import get_text_to_audio_modes
 
-        model_options = fetch_pollinations_audio_models_for_task("generation", DEFAULT_AUDIO_GEN_MODELS)
+        model_options = fetch_pollinations_audio_models_for_task("generation", DEFAULT_AUDIO_GEN_MODELS, cached_only=True)
 
         return {
             "required": {

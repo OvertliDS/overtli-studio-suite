@@ -19,7 +19,7 @@ import os
 import tempfile
 import threading
 from datetime import datetime, UTC
-from typing import Any, TypedDict
+from typing import Any, TypedDict, NotRequired
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ class PromptEntry(TypedDict):
     created_at: str
     updated_at: str
     uses: int
+    studio: NotRequired[dict]
 
 
 class PromptLibrary(TypedDict):
@@ -147,7 +148,22 @@ def _normalize_entry(raw: Any) -> PromptEntry | None:
         "created_at": created_at,
         "updated_at": updated_at,
         "uses": _sanitize_uses(raw.get("uses", 0)),
+        "studio": _sanitize_studio(raw.get("studio")),
     }
+
+
+def _sanitize_studio(value):
+    if not isinstance(value, dict):
+        return {}
+    result = {k: value[k] for k in ("guide", "styles", "customStyle", "constantPrompt", "constantEnabled") if k in value}
+    if "styles" in result:
+        result["styles"] = [_sanitize_text(x, 300) for x in result["styles"][:7]] if isinstance(result["styles"], list) else []
+    for key in ("guide", "customStyle", "constantPrompt"):
+        if key in result:
+            result[key] = _sanitize_text(result[key], 20000)
+    if "constantEnabled" in result:
+        result["constantEnabled"] = bool(result["constantEnabled"])
+    return result
 
 
 def _normalize_library(raw: Any) -> PromptLibrary:
@@ -246,6 +262,7 @@ def upsert_prompt_entry(
     tags: Any = None,
     notes: str = "",
     allow_overwrite: bool = True,
+    studio: dict | None = None,
 ) -> PromptEntry:
     clean_name = _sanitize_name(name)
     clean_prompt = _sanitize_text(prompt, max_length=400_000)
@@ -268,6 +285,8 @@ def upsert_prompt_entry(
         existing["tags"] = _sanitize_tags(tags)
         existing["notes"] = _sanitize_text(notes, max_length=2000)
         existing["updated_at"] = now
+        if studio is not None:
+            existing["studio"] = _sanitize_studio(studio)
         saved = save_prompt_library(library)
         refreshed = _find_entry(saved["entries"], clean_name)
         if not refreshed:
@@ -283,6 +302,7 @@ def upsert_prompt_entry(
         "created_at": now,
         "updated_at": now,
         "uses": 0,
+        "studio": _sanitize_studio(studio),
     }
     entries.append(entry)
     save_prompt_library(library)

@@ -6,6 +6,7 @@ import logging
 import importlib
 import os
 import time
+import threading
 from typing import Any
 
 requests = importlib.import_module("requests")
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 _CACHE_TTL_SECONDS = 300
 _CACHE_MODELS: list[dict[str, Any]] = []
 _CACHE_TS = 0.0
+_CATALOG_LOCK = threading.Lock()
 
 _TEXT_MODEL_NAME_KEYWORDS = {
     "openai",
@@ -450,11 +452,18 @@ def _resolve_pollinations_api_key() -> str:
 
 
 def _fetch_catalog(force_refresh: bool = False) -> list[dict[str, Any]]:
+    with _CATALOG_LOCK:
+        return _refresh_catalog(force_refresh)
+
+
+def _refresh_catalog(force_refresh: bool = False) -> list[dict[str, Any]]:
     global _CACHE_MODELS, _CACHE_TS
 
     now = time.time()
-    if not force_refresh and _CACHE_MODELS and (now - _CACHE_TS) < _CACHE_TTL_SECONDS:
+    if not force_refresh and _CACHE_TS and (now - _CACHE_TS) < _CACHE_TTL_SECONDS:
         return list(_CACHE_MODELS)
+    # Cache failed and empty discovery too; INPUT_TYPES is queried repeatedly.
+    _CACHE_TS = now
 
     cfg = get_config().pollinations
     headers: dict[str, str] = {}
@@ -525,9 +534,9 @@ def _fetch_catalog(force_refresh: bool = False) -> list[dict[str, Any]]:
     return list(_CACHE_MODELS)
 
 
-def fetch_pollinations_text_models(require_vision: bool, fallback_models: list[str]) -> list[str]:
+def fetch_pollinations_text_models(require_vision: bool, fallback_models: list[str], cached_only=False) -> list[str]:
     """Return text chat models with optional strict vision capability filtering."""
-    entries = _fetch_catalog()
+    entries = list(_CACHE_MODELS) if cached_only else _fetch_catalog()
 
     discovered: list[str] = []
     seen: set[str] = set()
@@ -556,12 +565,12 @@ def fetch_pollinations_text_models(require_vision: bool, fallback_models: list[s
     return list(fallback_models)
 
 
-def fetch_pollinations_modality_models(modality: str, fallback_models: list[str]) -> list[str]:
+def fetch_pollinations_modality_models(modality: str, fallback_models: list[str], cached_only=False) -> list[str]:
     """Return display model options for a target modality with fallback safety."""
     if modality == "text":
-        return fetch_pollinations_text_models(require_vision=False, fallback_models=fallback_models)
+        return fetch_pollinations_text_models(require_vision=False, fallback_models=fallback_models, cached_only=cached_only)
 
-    entries = _fetch_catalog()
+    entries = list(_CACHE_MODELS) if cached_only else _fetch_catalog()
 
     discovered: list[str] = []
     seen: set[str] = set()
@@ -591,7 +600,7 @@ def get_pollinations_catalog_entries(force_refresh: bool = False) -> list[dict[s
     return _fetch_catalog(force_refresh=force_refresh)
 
 
-def fetch_pollinations_audio_models_for_task(task: str, fallback_models: list[str]) -> list[str]:
+def fetch_pollinations_audio_models_for_task(task: str, fallback_models: list[str], cached_only=False) -> list[str]:
     """
     Return audio model options tailored for a task.
 
@@ -603,7 +612,7 @@ def fetch_pollinations_audio_models_for_task(task: str, fallback_models: list[st
     if normalized_task not in {"transcription", "generation", "generation_speech", "generation_music"}:
         raise ValueError(f"Unsupported audio task '{task}'")
 
-    entries = _fetch_catalog()
+    entries = list(_CACHE_MODELS) if cached_only else _fetch_catalog()
 
     discovered: list[str] = []
     seen: set[str] = set()
@@ -641,18 +650,18 @@ def fetch_pollinations_audio_models_for_task(task: str, fallback_models: list[st
     return list(fallback_models)
 
 
-def fetch_pollinations_advanced_models() -> list[str]:
+def fetch_pollinations_advanced_models(cached_only=False) -> list[str]:
     """Return a single advanced dropdown sorted by primary modality for the router node."""
     choices: list[str] = ["auto"]
     seen: set[str] = {choice.lower() for choice in choices}
 
     groups = [
-        fetch_pollinations_text_models(require_vision=False, fallback_models=["openai [text] [vision] [free]"]),
-        fetch_pollinations_modality_models("image", fallback_models=["flux [image-gen] [free]"]),
-        fetch_pollinations_modality_models("video", fallback_models=["wan [video-gen] [free]"]),
-        fetch_pollinations_audio_models_for_task("transcription", ["whisper [stt] [free]"]),
-        fetch_pollinations_audio_models_for_task("generation_speech", ["openai-audio [tts] [free]"]),
-        fetch_pollinations_audio_models_for_task("generation", ["openai-audio [ttaudio] [free]"]),
+        fetch_pollinations_text_models(require_vision=False, fallback_models=["openai [text] [vision] [free]"], cached_only=cached_only),
+        fetch_pollinations_modality_models("image", fallback_models=["flux [image-gen] [free]"], cached_only=cached_only),
+        fetch_pollinations_modality_models("video", fallback_models=["wan [video-gen] [free]"], cached_only=cached_only),
+        fetch_pollinations_audio_models_for_task("transcription", ["whisper [stt] [free]"], cached_only=cached_only),
+        fetch_pollinations_audio_models_for_task("generation_speech", ["openai-audio [tts] [free]"], cached_only=cached_only),
+        fetch_pollinations_audio_models_for_task("generation", ["openai-audio [ttaudio] [free]"], cached_only=cached_only),
     ]
 
     for group in groups:

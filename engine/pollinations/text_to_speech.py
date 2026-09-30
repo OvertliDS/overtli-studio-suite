@@ -127,7 +127,7 @@ class GZ_TextToSpeech:
     def INPUT_TYPES(cls) -> dict:
         from ...instruction_modes import get_tts_modes
 
-        model_options = fetch_pollinations_audio_models_for_task("generation", DEFAULT_TTS_MODELS)
+        model_options = fetch_pollinations_audio_models_for_task("generation", DEFAULT_TTS_MODELS, cached_only=True)
 
         return {
             "required": {

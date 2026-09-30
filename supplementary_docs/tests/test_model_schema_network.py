@@ -34,10 +34,12 @@ def test_lm_studio_offline_discovery_is_silent_and_fast_pathed():
     assert 'logger.debug("Local model discovery unavailable:' in text
 
 
-def test_schema_refresh_workers_are_daemons():
+def test_local_discovery_worker_is_daemon_and_pollinations_schema_does_not_poll():
     lm = (_root() / "engine" / "llm_text_enhancer.py").read_text(encoding="utf-8")
     poll = (_root() / "engine" / "pollinations" / "text_enhancer.py").read_text(encoding="utf-8")
     assert 'name="overtli-lmstudio-model-refresh"' in lm
-    assert 'name="overtli-pollinations-model-refresh"' in poll
+    schema = poll[poll.index("def get_schema_models()"):poll.index("def refresh_models()") ]
+    assert "threading.Thread" not in schema
+    assert "fetch_text_models" not in schema
     assert "daemon=True" in lm
-    assert "daemon=True" in poll
+    assert "def refresh_models()" in poll

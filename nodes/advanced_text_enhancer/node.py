@@ -63,7 +63,7 @@ class GZ_AdvancedTextEnhancer:
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:
-        pollinations_models = fetch_pollinations_advanced_models()
+        pollinations_models = fetch_pollinations_advanced_models(cached_only=True)
         copilot_models = _build_copilot_model_options()
         lm_studio_models: list[str]
         try:

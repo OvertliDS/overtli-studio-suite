@@ -92,6 +92,12 @@ SETTING_SPECS: Dict[str, SettingSpec] = {
     ),
 }
 
+SETTING_SPECS.update({
+    "ollama_base_url": SettingSpec(key="ollama_base_url", default="http://127.0.0.1:11434", env_vars=("OLLAMA_HOST",), description="Ollama API URL."),
+    "ollama_api_key": SettingSpec(key="ollama_api_key", secret=True, env_vars=("OLLAMA_API_KEY",), description="Optional Ollama key."),
+    "codex_executable": SettingSpec(key="codex_executable", description="Codex CLI executable (blank uses PATH)."),
+})
+
 DEFAULT_SETTINGS: Dict[str, Any] = {"schema_version": SCHEMA_VERSION}
 DEFAULT_SETTINGS.update({key: spec.default for key, spec in SETTING_SPECS.items()})
 

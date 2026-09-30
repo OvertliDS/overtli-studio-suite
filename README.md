@@ -50,11 +50,23 @@
 
 *You can find the nodes by simply searching for "Overtli".*
 
-1.  Add the **`GZ_ProviderSettings`** node and save your keys or URLs once.
-2.  Add the **`GZ_AdvancedTextEnhancer`** or **`GZ_LLMTextEnhancer`** node.
-3.  Choose your `provider` and `active_engine`.
-4.  Connect optional `IMAGE` or `AUDIO` inputs when needed.
-5.  Execute and use the native output directly in your workflow.
+1. Add **OVERTLI Studio · Prompt Director** (`OvertliStudioSuite`).
+2. Connect an authored `STRING` prompt and choose the H3, FLUX.2 Klein, or Qwen guide.
+3. Open **Provider connections** to save local URLs and API keys, then choose a provider and click **Refresh models**.
+4. Test the prompt, inspect the structure checks, and enable **Enhance when workflow runs** when ready.
+5. Connect the prompt output to your existing text encoder or Director prompt input. Local model unloading is enabled by default.
+
+Legacy `GZ_*` nodes remain available for existing graphs and media generation. See the [Director integration guide](supplementary_docs/DIRECTOR_INTEGRATION.md) for the unified editor, constants, Addtl media islands, workflow migration, and video comparison.
+
+### Version 1.2 Director integration
+
+- Shared expanding prompt editors, local Ctrl+F find/replace, character counts and estimated token counts.
+- Editable `[Constant]` blocks, shared standard prompt libraries, and a separate Addtl library.
+- Bundled full H3 Ref2VA/Base and FLUX.2 Klein 9B/Qwen Image 2.1 engineering guides with structure checks.
+- LM Studio, Ollama, Codex CLI, Pollinations and OpenAI-compatible providers in one node; model discovery is explicit and cached.
+- Targeted LM Studio instance unloading and Ollama `keep_alive: 0` with host-state verification after enhancement/test.
+- Optional Pixaroma Save Video integration: durable MP4, MP4 HQ, WebM and ProRes saves, prompt/LoRA sidecars, browser proxies and synchronized A/B video comparison.
+- Addtl image/video loaders use recursive schemas under `input/OvertliDS/addtl`; managed upload controls and pickers stay within the selected island.
 
 ### Use With Existing ComfyUI Workflows (CLIP Text Encode)
 

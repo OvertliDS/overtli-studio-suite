@@ -12,7 +12,7 @@ All nodes use the 3-Layer Instruction Stack:
 3. Raw Prompt (always appended)
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __author__ = "OVERTLI STUDIO"
 
 # ============================================================================
@@ -158,7 +158,21 @@ def generate_node_mappings(config: dict) -> tuple:
 NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS = generate_node_mappings(NODE_CONFIG)
 
 # Web directory for custom JS (if needed in the future)
-# WEB_DIRECTORY = "./web"
+WEB_DIRECTORY = "./web"
+if __package__:
+    from .director import OvertliStudioSuite
+    NODE_CLASS_MAPPINGS["OvertliStudioSuite"] = OvertliStudioSuite
+    from .media_nodes import build_media_nodes
+    NODE_CLASS_MAPPINGS.update(build_media_nodes())
+    # Preserve the upstream frontend class ID and extend its optional metadata contract.
+    try:
+        from .video_tools import OvertliDirectorSaveVideo, _saver
+        _saver()
+        NODE_CLASS_MAPPINGS["PixaromaSaveVideo"] = OvertliDirectorSaveVideo
+    except (ModuleNotFoundError, RuntimeError) as exc:
+        if isinstance(exc, ModuleNotFoundError) and exc.name not in {"nodes", "server", "folder_paths"}:
+            raise
+    NODE_DISPLAY_NAME_MAPPINGS["OvertliStudioSuite"] = "OVERTLI Studio · Prompt Director"
 
 # Print load confirmation
 print(f"[OVERTLI STUDIO LLM Suite] v{__version__} loaded - {len(NODE_CLASS_MAPPINGS)} nodes registered")

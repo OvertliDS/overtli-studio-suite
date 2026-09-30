@@ -424,7 +424,7 @@ class TestPreviewAndPackagePolish(unittest.TestCase):
         init_path = node_root / "__init__.py"
         text = init_path.read_text(encoding="utf-8")
 
-        self.assertIn('__version__ = "1.1.0"', text)
+        self.assertIn('__version__ = "1.2.0"', text)
 
     def test_secret_persistence_defaults_are_session_only(self):
         node_root = _resolve_node_root()

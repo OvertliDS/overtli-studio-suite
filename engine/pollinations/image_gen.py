@@ -88,7 +88,7 @@ class GZ_ImageGen:
 
         image_gen_modes = get_image_gen_modes()
         mode_names = list(image_gen_modes.keys())
-        model_options = fetch_pollinations_modality_models("image", DEFAULT_IMAGE_MODELS)
+        model_options = fetch_pollinations_modality_models("image", DEFAULT_IMAGE_MODELS, cached_only=True)
 
         return {
             "required": {

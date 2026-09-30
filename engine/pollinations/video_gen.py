@@ -117,7 +117,7 @@ class GZ_VideoGen:
 
     @classmethod
     def INPUT_TYPES(cls) -> dict:
-        model_options = fetch_pollinations_modality_models("video", DEFAULT_VIDEO_MODELS)
+        model_options = fetch_pollinations_modality_models("video", DEFAULT_VIDEO_MODELS, cached_only=True)
         return {
             "required": {
                 "prompt": (

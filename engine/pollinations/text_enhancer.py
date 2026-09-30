@@ -94,8 +94,6 @@ def fetch_text_models() -> list[str]:
 
 _CACHED_MODELS: Optional[list[str]] = None
 _SCHEMA_REFRESH_LOCK = threading.Lock()
-_SCHEMA_REFRESH_IN_PROGRESS = False
-_SCHEMA_LAST_REFRESH_ATTEMPT = 0.0
 
 
 def get_cached_models() -> list[str]:
@@ -105,38 +103,10 @@ def get_cached_models() -> list[str]:
     return list(_CACHED_MODELS)
 
 
-def _refresh_schema_models_worker() -> None:
-    global _CACHED_MODELS, _SCHEMA_REFRESH_IN_PROGRESS
-    try:
-        models = fetch_text_models()
-        with _SCHEMA_REFRESH_LOCK:
-            _CACHED_MODELS = list(models)
-    finally:
-        with _SCHEMA_REFRESH_LOCK:
-            _SCHEMA_REFRESH_IN_PROGRESS = False
-
-
 def get_schema_models() -> list[str]:
-    """Return cached/fallback choices immediately and refresh in the background."""
-    global _SCHEMA_REFRESH_IN_PROGRESS, _SCHEMA_LAST_REFRESH_ATTEMPT
-    now = time.monotonic()
-    start_refresh = False
+    """Schema reads never discover models; explicit refresh/inference owns I/O."""
     with _SCHEMA_REFRESH_LOCK:
-        cached = list(_CACHED_MODELS) if _CACHED_MODELS else list(_FALLBACK_MODELS)
-        if (
-            not _SCHEMA_REFRESH_IN_PROGRESS
-            and now - _SCHEMA_LAST_REFRESH_ATTEMPT >= _SCHEMA_REFRESH_INTERVAL_SECONDS
-        ):
-            _SCHEMA_REFRESH_IN_PROGRESS = True
-            _SCHEMA_LAST_REFRESH_ATTEMPT = now
-            start_refresh = True
-    if start_refresh:
-        threading.Thread(
-            target=_refresh_schema_models_worker,
-            name="overtli-pollinations-model-refresh",
-            daemon=True,
-        ).start()
-    return cached
+        return list(_CACHED_MODELS) if _CACHED_MODELS else list(_FALLBACK_MODELS)
 
 
 def refresh_models() -> list[str]:

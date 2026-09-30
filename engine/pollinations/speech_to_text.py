@@ -300,7 +300,7 @@ class GZ_SpeechToText:
     def INPUT_TYPES(cls) -> dict:
         from ...instruction_modes import get_speech_to_text_modes
 
-        model_options = fetch_pollinations_audio_models_for_task("transcription", DEFAULT_STT_MODELS)
+        model_options = fetch_pollinations_audio_models_for_task("transcription", DEFAULT_STT_MODELS, cached_only=True)
 
         return {
             "required": {

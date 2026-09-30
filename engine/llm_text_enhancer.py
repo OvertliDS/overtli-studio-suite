@@ -406,56 +406,47 @@ def _extract_text_content(value: Any) -> str:
 
 
 def _unload_model(model_name: str, unload_endpoint: str, headers: Optional[dict[str, str]] = None) -> None:
-    """Attempt to unload the active model without failing the main response flow."""
+    """Unload only instances of the selected model and verify their removal."""
     if not model_name or not unload_endpoint:
         return
+    list_endpoint = unload_endpoint.rsplit("/", 1)[0]
+    response = requests.get(list_endpoint, headers=headers or None, timeout=10)
+    response.raise_for_status()
+    rows = response.json().get("models", [])
+    instance_ids = [instance["id"] for row in rows for instance in row.get("loaded_instances", [])
+                    if row.get("key") == model_name or instance.get("id") == model_name]
+    for instance_id in instance_ids:
+        response = requests.post(unload_endpoint, json={"instance_id": instance_id}, headers=headers or None, timeout=15)
+        response.raise_for_status()
+    for _ in range(20):
+        response = requests.get(list_endpoint, headers=headers or None, timeout=10)
+        response.raise_for_status()
+        remaining = {instance["id"] for row in response.json().get("models", []) for instance in row.get("loaded_instances", [])}
+        if not remaining.intersection(instance_ids):
+            logger.info("LM Studio unload verified for %s (%d instances)", model_name, len(instance_ids))
+            return
+        time.sleep(0.25)
+    raise OvertliModelError("LM Studio still reports the selected model loaded after unload")
 
-    payload_variants = [
-        {"model": model_name},
-        {"model_name": model_name},
-        {"id": model_name},
-    ]
 
-    for payload in payload_variants:
-        try:
-            response = requests.post(unload_endpoint, json=payload, headers=headers or None, timeout=10)
-            if response.ok:
-                logger.info("LM Studio model unload succeeded for '%s'.", model_name)
-                return
-        except Exception:  # noqa: BLE001
-            continue
-
-    logger.warning("LM Studio model unload request did not succeed for '%s'.", model_name)
-
-
-def _unload_ollama_model(model_name: str, chat_endpoint: str) -> None:
+def _unload_ollama_model(model_name: str, chat_endpoint: str, headers=None) -> None:
     """Attempt to unload an Ollama model by sending a keep_alive=0 request."""
     if not model_name:
         return
 
-    try:
-        normalized_chat_endpoint = normalize_string_input(chat_endpoint)
-        if not normalized_chat_endpoint:
+    normalized = str(chat_endpoint).split("/v1/")[0].rstrip("/")
+    response = requests.post(normalized + "/api/generate", json={"model": model_name, "prompt": "", "keep_alive": 0, "stream": False}, headers=headers or None, timeout=15)
+    response.raise_for_status()
+    for _ in range(20):
+        response = requests.get(normalized + "/api/ps", headers=headers or None, timeout=10)
+        response.raise_for_status()
+        active = [row.get("name") or row.get("model") for row in response.json().get("models", [])]
+        names = {model_name, model_name + ":latest"}
+        if not names.intersection(active):
+            logger.info("Ollama unload verified for %s", model_name)
             return
-
-        if "/v1/" in normalized_chat_endpoint:
-            base_url = normalized_chat_endpoint.split("/v1/")[0]
-        else:
-            base_url = normalized_chat_endpoint.rsplit("/", 2)[0]
-
-        api_url = f"{base_url.rstrip('/')}/api/chat"
-        payload = {
-            "model": model_name,
-            "keep_alive": 0,
-        }
-
-        response = requests.post(api_url, json=payload, timeout=5)
-        if response.ok:
-            logger.info("Ollama model unload succeeded for '%s'.", model_name)
-        else:
-            logger.warning("Ollama model unload failed for '%s': %s", model_name, response.text)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to reach Ollama for unload: %s", exc)
+        time.sleep(.25)
+    raise OvertliModelError("Ollama still reports the selected model loaded after unload")
 
 
 def _cleanup_runtime_memory() -> None:
@@ -739,8 +730,8 @@ class GZ_LLMTextEnhancer(GZBaseNode):
         default_api_key = lm_cfg.api_key or ""
 
         if provider_key == "ollama":
-            base_url_setting_key = ""
-            api_key_setting_key = ""
+            base_url_setting_key = "ollama_base_url"
+            api_key_setting_key = "ollama_api_key"
             default_base_url = _OLLAMA_DEFAULT_BASE_URL
             default_api_key = ""
         elif provider_key == "openai-compatible":
@@ -948,6 +939,8 @@ class GZ_LLMTextEnhancer(GZBaseNode):
             else:
                 result = _extract_text_content(data.get("content", ""))
 
+            if not model_name and provider_key in {"lm-studio", "ollama"}:
+                model_name = str(data.get("model") or "")
             result = sanitize_text_output(result or "", mode_hint="text").strip()
             if not result:
                 raise OvertliAPIError("Local LLM endpoint returned an empty response", endpoint=chat_endpoint)
@@ -966,12 +959,6 @@ class GZ_LLMTextEnhancer(GZBaseNode):
                     ),
                     endpoint=chat_endpoint,
                 )
-
-            if model_name:
-                if unload_lm_studio and provider_key != "ollama":
-                    _unload_model(model_name, unload_endpoint=unload_endpoint, headers=auth_headers)
-                if unload_ollama and provider_key == "ollama":
-                    _unload_ollama_model(model_name, chat_endpoint=chat_endpoint)
 
             logger.info("GZ_LLMTextEnhancer completed with model '%s'.", model_name or "auto")
             return (result,)
@@ -1001,8 +988,15 @@ class GZ_LLMTextEnhancer(GZBaseNode):
         except Exception as exc:  # noqa: BLE001
             raise OvertliAPIError(f"Local LLM request failed: {exc}", endpoint=chat_endpoint) from exc
         finally:
-            if cleanup_vram:
-                _cleanup_runtime_memory()
+            try:
+                if model_name:
+                    if unload_lm_studio and provider_key == "lm-studio":
+                        _unload_model(model_name, unload_endpoint=unload_endpoint, headers=auth_headers)
+                    if unload_ollama and provider_key == "ollama":
+                        _unload_ollama_model(model_name, chat_endpoint=chat_endpoint, headers=auth_headers)
+            finally:
+                if cleanup_vram:
+                    _cleanup_runtime_memory()
 
 
 # Backward-compatible alias for older imports/workflows.
