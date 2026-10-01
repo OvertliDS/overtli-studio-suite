@@ -1,4 +1,4 @@
-# Director integration, version 1.2
+# Director integration, version 1.2.1
 
 The unified `OvertliStudioSuite` node accepts a connected authored prompt and outputs
 the resolved prompt plus JSON structure checks. Existing `GZ_*` nodes retain their
@@ -33,6 +33,20 @@ trailing constant. H3 replacement clips inherit the global constant.
 Manual resizing and **Node size** controls preserve saved dimensions. Autosize
 retains a usable 700-pixel minimum width and the saved manual dimensions. Prompt
 accordions scroll within the chosen height rather than collapsing the node width.
+The minimum reserves socket rows as well as the editor body. A resize-handle drag
+or explicit Apply size stores manual intent; ordinary selection and automatic
+layout do not. The same lifecycle covers the Suite's retained legacy nodes and
+supported H3/Image live, review and compare widgets.
+
+Both Directors expose **Prompt enhancement** inline. These controls update their
+paired Studio node's provider, model, instructions, response/context budgets and
+automatic unload setting. Discovery is explicit. An unavailable saved model stays
+visible until the user chooses another. **Enhance draft** previews an editable
+candidate. **Use draft as authored** applies it to the connected source and turns
+automatic enhancement off; styles and constants remain separate and compose once.
+Edits during a request invalidate the candidate. The Image integration uses one
+visible root Studio with its output connected into the processing subgraph. A
+Director requires a unique or explicitly paired Studio.
 
 **Final prompts sent to the model / Prepare final prompts** resolves the current
 graph through generation's prompt producers, including clip/base replacement,
@@ -40,6 +54,8 @@ intent notes, LoRA triggers, Image composition and optional refinement prompts.
 It never loads model weights. Enabled enhancement runs on request; an identical
 generation reuses the result for ten minutes. Editing prompts/settings requires
 a new snapshot. Unsupported custom text producers are reported as unresolved.
+Prompt/settings changes invalidate the displayed composition, including changes
+during preparation. The next snapshot must be prepared explicitly.
 
 ## Guides and checks
 
@@ -143,12 +159,29 @@ respected, including registered external folders. Each saved master gets an
 `.overtli.json` sidecar containing its resolved prompt, LoRA plan and Director
 state. API keys are not included.
 
-The H3 Output tab compares two latest saved outputs or uploaded comparison files.
-Players synchronize play/pause, seek and rate; frame steps use saved FPS or the
-entered uploaded-clip FPS. MP4 HQ and ProRes use browser proxies when required;
-uploaded codecs fall back to a bounded proxy on decode failure. Master files are
-preserved. Comparison metadata can be expanded beside each player. Uploading an
-older saved file allows comparison against the latest output.
+The separate **H3 Review Wall** retains its clip gallery and contains **Compare
+videos and inspect exact frames**. The Director Output tab links to that wall.
+Sources include current wall outputs, Save Video history and uploaded clips.
+Selections persist by root workflow identity, wall and Normal/Addtl scope without
+marking generated history as an authored workflow edit.
+
+Playback uses an H.264 proxy for MP4, MP4 HQ, WebM, ProRes and supported uploads.
+The master remains authoritative for inspection and extraction. FFprobe reports
+real raster, decoded frame count, average/nominal rate, start time and duration.
+Zero-based frame scrubbing/stepping decodes source frame order; exact source PNG
+previews are separate from proxy playback. Synchronized comparisons align normalized
+frame positions. **Export current frame** and **Export frame range** write PNGs
+under `input/OvertliDS/references/frames` or `input/OvertliDS/addtl/frames`. A request
+is limited to 32 frames and bounded by decoder time, pixel work and process slots.
+Variable-rate sources use decoded presentation timestamps; rate displays do not
+guarantee constant frame spacing.
+
+Known opposite-scope files are excluded. External save scope derives from the
+executed Director/workflow or a matching path/size/mtime sidecar, never a browser
+scope claim. An older unverified external token supports proxy playback and shows
+upload guidance before exact frame inspection/extraction. Uploading it into the
+desired input island supplies verifiable scope. Addtl native H3 preview writers
+use `temp/OvertliDS/addtl/review`, avoiding the global Normal preview cache.
 
 ## Verification and recovery
 
@@ -157,6 +190,9 @@ Run Python tests with your ComfyUI-compatible Python environment:
 ```powershell
 python -m pytest supplementary_docs/tests -q
 node supplementary_docs/tests/test_director_frontend.cjs
+node supplementary_docs/tests/test_node_sizing.cjs
+node supplementary_docs/tests/test_inline_enhancer.cjs
+node supplementary_docs/tests/test_video_compare.cjs
 ```
 
 Restart ComfyUI after backend changes. Save ongoing browser edits before refreshing

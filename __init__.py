@@ -12,7 +12,7 @@ All nodes use the 3-Layer Instruction Stack:
 3. Raw Prompt (always appended)
 """
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __author__ = "OVERTLI STUDIO"
 
 # ============================================================================

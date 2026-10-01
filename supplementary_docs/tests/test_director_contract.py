@@ -58,6 +58,28 @@ def test_constants_replace_trailing_block_once_and_preserve_disabled_text():
     assert director.append_constant(original, "new", False) == original
 
 
+def test_inline_draft_stays_raw_and_final_composes_once():
+    state = {"enabled": True, "promptOverrideEnabled": True, "promptOverride": "stale override",
+             "guide": "H3 Ref2VA", "constantPrompt": "constant", "customStyle": "style"}
+    with patch.object(director, "enhance_prompt", return_value="enhanced authoring") as enhancement:
+        draft, final = director.enhancement_draft("original authoring", state)
+    enhancement.assert_called_once_with("original authoring", state)
+    assert draft == "enhanced authoring"
+    assert final.count("enhanced authoring") == final.count("style") == final.count("[Constant]") == 1
+    assert "stale override" not in final
+    assert director.prepare_prompt(draft, {**state, "enabled": False, "promptOverrideEnabled": False}) == final
+
+
+def test_inline_draft_rejects_empty_and_over_budget_without_source_change():
+    state = {"guide": "H3 Ref2VA", "constantPrompt": "constant"}
+    with patch.object(director, "enhance_prompt", return_value=""):
+        with pytest.raises(ValueError, match="empty draft"):
+            director.enhancement_draft("preserved authoring", state)
+    with patch.object(director, "enhance_prompt", return_value="a" * 7000):
+        with pytest.raises(ValueError, match="7,000"):
+            director.enhancement_draft("preserved authoring", state)
+
+
 def test_reference_numbering_is_independent_and_invalid_tags_are_errors():
     prompt = "\n".join(x + ": content" for x in director.H3_REF_FIELDS) + "\n[Shot 1] <Picture 2> <Video 1> <Audio 1>"
     checks = director.check_prompt(prompt, "H3 Ref2VA", "<Picture 1> <Picture 2> <Video 1> <Audio 1>")

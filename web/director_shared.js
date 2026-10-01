@@ -30,6 +30,7 @@ export function enhanceEditor(area) {
   area.style.whiteSpace = "pre-wrap"; area.style.overflowWrap = "anywhere"; area.style.boxSizing = "border-box";
   const count = el("div"); count.className = "ovprompt-count";
   const update = () => { count.textContent = `${area.value.length.toLocaleString()} characters · ~${Math.ceil(area.value.length / 4).toLocaleString()} tokens (estimate)`; area.style.height = Math.min(520, Math.max(110, area.scrollHeight)) + "px"; };
+  area._ovRefreshEditor = update;
   area.addEventListener("input", update);
   queueMicrotask(() => { if (area.parentElement) area.after(count); update(); });
   area.addEventListener("keydown", e => {
@@ -68,13 +69,109 @@ async function json(url, body) {
   const data = await response.json(); if (!response.ok || data.error) throw Error(data.error || `Request failed (${response.status})`); return data;
 }
 function suiteNode(host) {
-  const seen=new Set();const walk=g=>{if(!g||seen.has(g))return null;seen.add(g);for(const n of g._nodes||[]){if((n.comfyClass||n.type)==="OvertliStudioSuite")return n;const found=walk(n.subgraph||app.rootGraph?.subgraphs?.get?.(n.type));if(found)return found}return null};return walk(host?.graph);
+  if (host?._ovStudio || (host?.comfyClass || host?.type) === "OvertliStudioSuite") return host;
+  const seen = new Set(), candidates = [];
+  const walk = g => { if (!g || seen.has(g)) return; seen.add(g); for (const n of g._nodes || []) { if ((n.comfyClass || n.type) === "OvertliStudioSuite") candidates.push(n); walk(n.subgraph || app.rootGraph?.subgraphs?.get?.(n.type)); } };
+  walk(host?.graph);
+  const paired = candidates.find(n => String(n.id) === String(host?.properties?.overtliStudioNodeId));
+  return paired || (candidates.length === 1 ? candidates[0] : null);
 }
 function suiteState(host) { const n = suiteNode(host), w = n?.widgets?.find(w => w.name === "state"); let s = {}; try { s = JSON.parse(w?.value || "{}"); } catch {} return { n, w, s }; }
+function refreshPromptPanels(host) {
+  host._ovPromptPanel?.sync?.();
+  const studio = suiteNode(host);
+  studio?._ovStudioRefreshControls?.();
+  // Explicit pairing also keeps edits made in the visible Studio synchronized
+  // with its Director. Refreshing editors never writes back authored text.
+  for (const node of studio?.graph?._nodes || []) {
+    if (node !== host && node !== studio &&
+        (String(node.id) === String(studio.properties?.overtliDirectorNodeId) ||
+         String(node.properties?.overtliStudioNodeId) === String(studio.id))) {
+      node._ovPromptPanel?.sync?.();
+    }
+  }
+}
 function updateStudio(host, changes) {
   const current = suiteState(host); if (!current.w) return;
   current.s = {...current.s, ...changes}; current.w.value = JSON.stringify(current.s);
   current.n.properties ||= {}; current.n.properties.overtliStudioState = {...current.s}; host.graph?.change?.();
+  refreshPromptPanels(host);
+}
+function providerConnections(status) {
+  const settings = el("details"); settings.append(el("summary", "Provider connections · saved locally"));
+  const fields = {}; for (const key of ["lmstudio_base_url", "lmstudio_api_key", "ollama_base_url", "ollama_api_key", "openai_compatible_base_url", "openai_compatible_api_key", "pollinations_api_key", "codex_executable"]) { const value = input("", key.replaceAll("_", " ")); if (key.endsWith("api_key")) { value.type = "password"; value.autocomplete = "new-password"; } settings.append(el("label", key.replaceAll("_", " ")), value); fields[key] = value; }
+  settings.addEventListener("toggle", async () => { if (!settings.open) return; try { const data = await json("/overtli/studio/settings"); for (const [key, value] of Object.entries(fields)) { if (key.endsWith("api_key")) value.placeholder = data[key] ? "Key stored · blank preserves" : "No key stored"; else value.value = data[key] || ""; } } catch (e) { status.textContent = e.message; } });
+  settings.append(button("Save connections", async () => { try { await json("/overtli/studio/settings", Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v.value]))); for (const [k, v] of Object.entries(fields)) if (k.endsWith("api_key")) v.value = ""; status.textContent = "Connections saved locally. Refresh models when ready."; } catch (e) { status.textContent = e.message; } }));
+  for (const key of Object.keys(fields).filter(k => k.endsWith("api_key"))) settings.append(button("Clear stored " + key.replaceAll("_", " "), async () => { try { await json("/overtli/studio/settings", { clear_keys: [key] }); fields[key].value = ""; fields[key].placeholder = "No key stored"; status.textContent = "Stored key cleared."; } catch (e) { status.textContent = e.message; } }));
+  return settings;
+}
+function inlineEnhancer(host, getOptions) {
+  const details = el('details'); details.append(el('summary', 'Prompt enhancement'));
+  const status = el('div'); status.className = 'ovstudio-status';
+  const provider = el('select'), model = el('select'), refresh = button('Refresh models', () => discover());
+  provider.setAttribute('aria-label', 'Enhancement provider'); model.setAttribute('aria-label', 'Enhancement model');
+  for (const name of ['LM Studio', 'Ollama', 'Codex', 'Pollinations', 'OpenAI-compatible']) provider.append(el('option', name));
+  const row = el('div'); row.className = 'ovstudio-row'; row.append(provider, model, refresh);
+  const enabled = el('input'), unload = el('input'); enabled.type = unload.type = 'checkbox';
+  const enableLabel = el('label', 'Enhance automatically when generating '), unloadLabel = el('label', 'Unload local model after enhancement / test ');
+  enableLabel.append(enabled); unloadLabel.append(unload);
+  const advanced = el('details'); advanced.append(el('summary', 'Enhancement budgets and instructions'));
+  const context = input('8192'), budget = input('2048');
+  for (const [field, label, min, max, step] of [[context, 'Context tokens', 2048, 131072, 1024], [budget, 'Response tokens', 256, 16384, 256]]) {
+    field.type = 'number'; field.min = String(min); field.max = String(max); field.step = String(step); field.setAttribute('aria-label', label);
+    const line = el('label', label + ' '); line.append(field); advanced.append(line);
+  }
+  const instructions = textEditor('', value => changed({instructions: value})); instructions.placeholder = 'Extra enhancement instructions'; advanced.append(instructions);
+  const result = textEditor('', () => {}); result.readOnly = true; result.placeholder = 'Enhanced draft preview';
+  let candidate = '', source = '', generation = 0, busy = false;
+  const state = () => suiteState(host).s;
+  const changed = changes => { generation++; candidate = ''; result.value = ''; apply.disabled = true; updateStudio(host, changes); sync(); };
+  provider.onchange = () => { changed({provider: provider.value, model: ''}); status.textContent = 'Choose Refresh models to discover this provider.'; };
+  model.onchange = () => changed({model: model.value});
+  enabled.onchange = () => changed({enabled: enabled.checked}); unload.onchange = () => changed({autoUnload: unload.checked});
+  context.onchange = () => changed({contextTokens: Math.max(2048, Math.min(131072, Number(context.value) || 8192))});
+  budget.onchange = () => changed({maxTokens: Math.max(256, Math.min(16384, Number(budget.value) || 2048))});
+  async function discover() {
+    const selected = state().provider || 'LM Studio', ticket = ++generation; refresh.disabled = true; status.textContent = 'Discovering models…';
+    try {
+      const data = await json('/overtli/studio/models?provider=' + encodeURIComponent(selected) + '&refresh=1');
+      if (ticket !== generation || (state().provider || 'LM Studio') !== selected) return;
+      model.replaceChildren(); const empty = el('option', 'Choose model'); empty.value = ''; model.append(empty);
+      for (const item of data.models || []) { const option = el('option', item.label || item.id); option.value = item.id; model.append(option); }
+      const saved = state().model || '';
+      if (saved && !(data.models || []).some(item => item.id === saved)) { const option = el('option', saved + ' · saved, unavailable'); option.value = saved; model.append(option); }
+      model.value = saved; status.textContent = `${data.models?.length || 0} models. ${saved && !(data.models || []).some(item => item.id === saved) ? 'Saved model retained; select an available model before enhancing.' : 'Discovery runs only when requested.'}`;
+    } catch (e) { status.textContent = e.message; } finally { refresh.disabled = false; }
+  }
+  const preview = button('Enhance draft', async () => {
+    if (busy) return; busy = true; preview.disabled = true; apply.disabled = true; source = String(getOptions().getPrompt() || '');
+    const ticket = ++generation; status.textContent = 'Enhancing draft…';
+    try {
+      const current = {...state(), guide: getOptions().guide, promptOverrideEnabled: false};
+      const data = await json('/overtli/studio/prompt', {action: 'draft', prompt: source, state: current, reference_tags: getOptions().referenceTags?.() || '', duration: getOptions().duration?.()});
+      if (ticket !== generation) { status.textContent = 'Settings changed during enhancement. Request a new draft.'; return; }
+      candidate = data.prompt; result.value = candidate; result.dispatchEvent(new Event('input')); apply.disabled = !candidate;
+      status.textContent = [...data.checks.errors, ...data.checks.warnings].join('\n') || 'Draft ready. Styles and constants remain separate; inspect final prompts before generating.';
+    } catch (e) { status.textContent = e.message; } finally { busy = false; preview.disabled = false; }
+  });
+  const apply = button('Use draft as authored · enhancement Off', () => {
+    if (!candidate) return;
+    if (String(getOptions().getPrompt() || '') !== source) { status.textContent = 'Authored prompt changed. Request a new draft before replacing it.'; apply.disabled = true; return; }
+    updateStudio(host, {enabled: false, promptOverrideEnabled: false}); getOptions().setPrompt(candidate); enabled.checked = false;
+    status.textContent = 'Draft applied to the connected authored prompt. Automatic enhancement is Off; styles/constants compose once.'; apply.disabled = true;
+  }); apply.disabled = true;
+  function sync() {
+    const current = suiteState(host), s = current.s; const available = !!current.w;
+    provider.disabled = model.disabled = enabled.disabled = unload.disabled = context.disabled = budget.disabled = !available;
+    refresh.disabled = !available; preview.disabled = !available || busy;
+    provider.value = s.provider || 'LM Studio';
+    const saved = s.model || ''; if (![...model.children].some(o => o.value === saved)) { const option = el('option', saved || 'Choose model'); option.value = saved; model.append(option); } model.value = saved;
+    enabled.checked = !!s.enabled; unload.checked = s.autoUnload !== false; context.value = String(s.contextTokens || 8192); budget.value = String(s.maxTokens || 2048);
+    if (document.activeElement !== instructions) instructions.value = s.instructions || '';
+    if (!available) status.textContent = 'No unique connected Studio node found. Pair the Director with its Studio before enhancing.';
+  }
+  details.append(row, enableLabel, unloadLabel, el('div', 'The Director selects its model-specific authoring guide. Context defaults to 8192 for local providers; hosted providers manage their context.'), advanced, providerConnections(status), preview, result, apply, status);
+  sync(); details.refresh = sync; return details;
 }
 function stylePanel(host) {
   const details = el('details'); details.append(el('summary', 'Style stack · presets and custom guidance'));
@@ -100,10 +197,18 @@ function finalPromptPanel(host) {
   const details = el('details'); details.append(el('summary','Final prompts sent to the model'));
   const status=el('div');status.className='ovstudio-status';
   status.textContent='Prepare a current snapshot after edits. Enabled enhancement runs once and its identical next run reuses the result for ten minutes.';
-  const picker=el('select'), counts=el('div'), area=textEditor('',()=>{});area.readOnly=true; let rows=[];
+  const picker=el('select'), counts=el('div'), area=textEditor('',()=>{});area.readOnly=true; let rows=[], revision=0, signature;
+  details.invalidateIfChanged = value => {
+    if (value === signature) return;
+    signature = value; revision++; rows = []; picker.replaceChildren(); counts.textContent = '';
+    area.value = ''; area._ovRefreshEditor?.();
+    status.textContent = 'Prompt inputs changed. Prepare final prompts again to inspect the current composition.';
+  };
   picker.onchange=()=>{const row=rows[Number(picker.value)];area.value=row?.prompt || '';area.dispatchEvent(new Event('input'));const b=row?.budget;counts.textContent=b?`${b.characters} characters · ${b.utf16_units} UTF-16 units · ${b.tokens == null ? 'exact token count unavailable' : b.tokens+' text/template tokens'}\n${b.policy}\n${b.token_count_kind}`:'';};
   const prepare=button('Prepare final prompts',async()=>{prepare.disabled=true;status.textContent='Resolving current graph prompts…';try{
-    const graph=await app.graphToPrompt();const data=await json('/overtli/studio/preflight',{output:graph.output});rows=data.prompts;
+    const graph=await app.graphToPrompt(); const ticket=revision;
+    const data=await json('/overtli/studio/preflight',{output:graph.output});
+    if(ticket!==revision){status.textContent='Prompt inputs changed during preparation. Prepare final prompts again.';return;} rows=data.prompts;
     picker.replaceChildren();rows.forEach((row,index)=>{const option=el('option',row.label+' · '+row.characters+' characters');option.value=String(index);picker.append(option);});picker.value=String(Math.max(0,rows.findIndex(row=>row.characters>0)));picker.onchange();
     status.textContent=(data.complete?'Prepared current snapshot. ':'Resolve prompt errors before generating. ')+data.note+'\n'+[...data.unresolved.map(x=>x.label+': '+x.error),...rows.flatMap(x=>[...(x.budget?.errors || []),...(x.budget?.warnings || [])].map(y=>x.label+': '+y))].join('\n');
   }catch(e){status.textContent=e.message;}finally{prepare.disabled=false;}});
@@ -115,22 +220,23 @@ export function directorPromptPanel(host, options) {
   if (host._ovPromptPanel) { host._ovPromptPanel.refresh(options); return host._ovPromptPanel.panel; }
   css(); const panel = el("section"); panel.className = "ovstudio";
   panel.append(el("h3", "Prompt studio"), el("div", "Ctrl+F in a prompt opens local find/replace. Token counts are estimates."), sizingControls(host));
-  const authored = textEditor(options.getPrompt(), value => { options.setPrompt(value); }); panel.append(authored);
+  const authored = textEditor(options.getPrompt(), value => { options.setPrompt(value); refreshPromptPanels(host); }); panel.append(authored);
   const current = suiteState(host); if(current.w){current.s.guide=options.guide;current.w.value=JSON.stringify(current.s);if(current.n._ovStudioGuideControl)current.n._ovStudioGuideControl.value=options.guide;} const initial = options.getConstant?.() ?? current.s.constantPrompt ?? "";
   const constant = textEditor(initial, value => {
     options.setConstant?.(value);
     if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantPrompt = value; current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); host.graph?.change?.(); }
+    refreshPromptPanels(host);
   });
   const enabled = el("input"); enabled.type = "checkbox"; enabled.checked = options.constantEnabled?.() ?? current.s.constantEnabled !== false;
-  enabled.onchange = () => { options.setConstantEnabled?.(enabled.checked); if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); host.graph?.change?.(); } };
+  enabled.onchange = () => { options.setConstantEnabled?.(enabled.checked); if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); host.graph?.change?.(); } refreshPromptPanels(host); };
   const toggle = el("label", "Append editable [Constant] block "); toggle.append(enabled); panel.append(toggle, constant);
   panel.append(button("Use example constant", () => { constant.value = DEFAULT_CONSTANT; constant.dispatchEvent(new Event("input")); }));
   const status = el("div"); status.className = "ovstudio-status";
   const actions = el("div"); actions.className = "ovstudio-row";
   actions.append(button("Check structure", async () => { try { const r = await json("/overtli/studio/prompt", { prompt: authored.value, state: { guide: options.guide, constantPrompt: constant.value, constantEnabled: enabled.checked }, reference_tags: options.referenceTags?.() || "", duration: options.duration?.() }); status.textContent = [...r.checks.errors, ...r.checks.warnings].join("\n") || "Checks passed."; } catch (e) { status.textContent = e.message; } }));
-  if (current.n && !options.studio) actions.append(button("Open enhancer node", () => { const canvas = app.canvas; if (!canvas) return; if (current.n.graph && canvas.graph !== current.n.graph) canvas.setGraph(current.n.graph); canvas.deselectAll?.(); canvas.select?.(current.n); canvas.centerOnNode?.(current.n); canvas.setDirty?.(true, true); }));
   panel.append(actions, status);
-  panel.append(stylePanel(host),finalPromptPanel(host));
+  const enhancer = !options.studio ? inlineEnhancer(host, () => options) : null; if (enhancer) panel.append(enhancer);
+  const finalPrompts = finalPromptPanel(host); panel.append(stylePanel(host),finalPrompts);
   const details = el("details"), summary = el("summary", isAddtl(host) ? "Addtl prompt library" : "Prompt library"); details.append(summary); panel.append(details);
   const filter = input("", "Search name, prompt, tags"), category = el("select"), names = el("select"), preview = el("div"); preview.className = "ovstudio-preview";
   const name = input("", "Save name"), tags = input("", "Comma-separated tags"), notes = input("", "Notes"), saveCategory = input("General", "Category");
@@ -146,14 +252,33 @@ export function directorPromptPanel(host, options) {
   libActions.append(button("Load selected", async () => { try { const { entry } = await json("/overtli/studio/library", { action: "load", name: names.value, addtl: isAddtl(host) }); const pieces = entry.prompt.split(/^\s*\[Constant\]\s*$/im); authored.value = pieces[0].trim(); authored.dispatchEvent(new Event("input")); const recipe=entry.studio || {}; updateStudio(host,{styles:recipe.styles || [],customStyle:recipe.customStyle || ''}); constant.value = recipe.constantPrompt ?? pieces[1]?.trim() ?? ""; enabled.checked=recipe.constantEnabled ?? true; enabled.onchange(); constant.dispatchEvent(new Event("input")); status.textContent = "Loaded " + entry.name + ' with saved styles and constants. Reopen Style stack to refresh its selections.'; } catch (e) { status.textContent = e.message; } }), button("Save new", () => save(false)), button("Update existing", () => save(true)), button("Refresh", refresh));
   async function save(overwrite) { try { await json("/overtli/studio/library", { name: name.value, prompt: authored.value, studio:{...suiteState(host).s,constantPrompt:constant.value,constantEnabled:enabled.checked}, category: saveCategory.value, tags: tags.value.split(",").map(x => x.trim()).filter(Boolean), notes: notes.value, overwrite, addtl: isAddtl(host) }); status.textContent = "Saved " + name.value; await refresh(); } catch (e) { status.textContent = e.message; } }
   details.append(libActions); details.addEventListener("toggle", () => { if (details.open) refresh(); });
-  host._ovPromptPanel={panel,refresh:next=>{options=next;const value=options.getPrompt();if(document.activeElement!==authored&&authored.value!==value){authored.value=value;authored.dispatchEvent(new Event('input'));}const now=suiteState(host);if(now.w){Object.assign(current.s,now.s);current.w=now.w;current.s.guide=options.guide;now.w.value=JSON.stringify(current.s);}if(document.activeElement!==constant)constant.value=options.getConstant?.()??now.s.constantPrompt??'';enabled.checked=options.constantEnabled?.()??now.s.constantEnabled!==false;}};
+  const syncEditors = () => {
+    const value = options.getPrompt();
+    if (document.activeElement !== authored && authored.value !== value) { authored.value = value; authored._ovRefreshEditor?.(); }
+    const now = suiteState(host);
+    if (document.activeElement !== constant) { constant.value = options.getConstant?.() ?? now.s.constantPrompt ?? ''; constant._ovRefreshEditor?.(); }
+    enabled.checked = options.constantEnabled?.() ?? now.s.constantEnabled !== false;
+    finalPrompts.invalidateIfChanged(JSON.stringify({prompt: value, constant: constant.value, constantEnabled: enabled.checked,
+      guide: options.guide, studio: now.s, director: host.widgets?.find(w => w.name === 'state')?.value}));
+    enhancer?.refresh();
+  };
+  host._ovPromptPanel = {panel, sync: syncEditors, setGuide: guide => {options.guide = guide;}, refresh: next => {
+    options = next;
+    const now = suiteState(host);
+    if (now.w) {
+      Object.assign(current.s, now.s); current.n = now.n; current.w = now.w;
+      current.s.guide = options.guide; now.w.value = JSON.stringify(current.s);
+      now.n._ovStudioRefreshControls?.();
+    }
+    syncEditors();
+  }};
   return panel;
 }
 
 function installSuite(node, rehydrate = false) {
   if (node._ovStudio && !rehydrate) return;
   if (rehydrate) {
-    delete node._ovPromptPanel;
+    delete node._ovPromptPanel; delete node._ovStudioRefreshControls;
     const old = node.widgets?.find(w => w.name === "overtli_studio");
     old?.element?.remove(); old?.onRemove?.();
     if (old) node.widgets.splice(node.widgets.indexOf(old), 1);
@@ -171,25 +296,32 @@ function installSuite(node, rehydrate = false) {
   const provider = el("select"), model = el("select"), guide = el("select");
   for (const p of ["LM Studio", "Ollama", "Codex", "Pollinations", "OpenAI-compatible"]) provider.append(el("option", p)); provider.value = state.provider;
   for (const g of ["H3 Ref2VA", "H3 Base", "FLUX.2 Klein 9B", "Qwen Image 2.1"]) guide.append(el("option", g)); guide.value = state.guide; node._ovStudioGuideControl = guide;
-  const refresh = async (force = false) => { status.textContent = "Discovering models…"; model.disabled = true; try { const r = await json(`/overtli/studio/models?provider=${encodeURIComponent(state.provider)}&refresh=${force ? 1 : 0}`); model.replaceChildren(el("option", "Choose model")); for (const m of r.models) { const o = el("option", m.label || m.id); o.value = m.id; model.append(o); } if (r.models.some(m => m.id === state.model)) model.value = state.model; else { state.model = ""; save(); } status.textContent = `${r.models.length} models. Discovery is cached; use Refresh after provider changes.`; } catch (e) { status.textContent = e.message; } finally { model.disabled = false; } };
-  provider.onchange = () => { state.provider = provider.value; state.model = ""; save(); refresh(); }; model.onchange = () => { state.model = model.value === "Choose model" ? "" : model.value; save(); }; guide.onchange = () => { state.guide = guide.value; save(); };
+  const refresh = async (force = false) => { status.textContent = "Discovering models…"; model.disabled = true; try { const r = await json(`/overtli/studio/models?provider=${encodeURIComponent(state.provider)}&refresh=${force ? 1 : 0}`); model.replaceChildren(el("option", "Choose model")); for (const m of r.models) { const o = el("option", m.label || m.id); o.value = m.id; model.append(o); } if (r.models.some(m => m.id === state.model)) model.value = state.model; else if (state.model) { const saved = el("option", state.model + " · saved, unavailable"); saved.value = state.model; model.append(saved); model.value = state.model; } status.textContent = `${r.models.length} models. Discovery is cached; use Refresh after provider changes.`; } catch (e) { status.textContent = e.message; } finally { model.disabled = false; } };
+  provider.onchange = () => { state.provider = provider.value; state.model = ""; save(); refresh(); }; model.onchange = () => { state.model = model.value === "Choose model" ? "" : model.value; save(); }; guide.onchange = () => { state.guide = guide.value; save(); node._ovPromptPanel?.setGuide?.(state.guide); };
   const controls = el("div"); controls.className = "ovstudio-row"; controls.append(provider, model, button("Refresh models", () => refresh(true))); panel.append(controls, guide);
-  for (const [key, label] of [["enabled", "Enhance when workflow runs"], ["autoUnload", "Fully unload selected local model after enhance/test"]]) { const check = el("input"); check.type = "checkbox"; check.checked = state[key]; check.onchange = () => { state[key] = check.checked; save(); }; const l = el("label", label + " "); l.append(check); panel.append(l); }
+  const checks = {}; for (const [key, label] of [["enabled", "Enhance when workflow runs"], ["autoUnload", "Fully unload selected local model after enhance/test"]]) { const check = el("input"); check.type = "checkbox"; check.checked = state[key]; checks[key] = check; check.onchange = () => { state[key] = check.checked; save(); }; const l = el("label", label + " "); l.append(check); panel.append(l); }
   const budget = input(String(state.maxTokens || 2048)); budget.type = "number"; budget.min = "256"; budget.max = "16384"; budget.step = "256"; budget.onchange = () => { state.maxTokens = Math.max(256, Math.min(16384, Number(budget.value) || 2048)); save(); }; const budgetLabel = el("label", "Local / API response token budget (Codex uses its own budget) "); budgetLabel.append(budget); panel.append(budgetLabel);
   const contextBudget=input(String(state.contextTokens || 8192));contextBudget.type='number';contextBudget.min='2048';contextBudget.max='131072';contextBudget.step='1024';contextBudget.onchange=()=>{state.contextTokens=Math.max(2048,Math.min(131072,Number(contextBudget.value)||8192));save();};const contextLabel=el('label','Local context budget (tokens; default 8192) ');contextLabel.append(contextBudget);panel.append(contextLabel,el('div','LM Studio and Ollama use this context budget, expanding to fit guides and output. Codex and hosted APIs control their own context window.'));
   const instruction = textEditor(state.instructions || "", value => { state.instructions = value; save(); }); instruction.placeholder = "Extra instructions (optional)"; panel.append(instruction);
   const source = textEditor("", () => {}); source.placeholder = "Paste a prompt to test the selected provider"; const result = textEditor("", () => {}); result.readOnly = true;
-  panel.append(button("Use connected prompt for test", () => { const upstream = node.getInputNode?.(0); const w = upstream?.widgets?.find(w => w.name === "text" || w.name === "prompt"); if (!w) { status.textContent = "Connected source has no editable prompt widget; paste the resolved prompt here."; return; } source.value = String(w.value || ""); source.dispatchEvent(new Event("input")); }));
+  panel.append(button("Use connected prompt for test", () => { const upstream = node.getInputNode?.(0); const w = upstream?.widgets?.find(w => w.name === "text" || w.name === "prompt" || w.name === "value"); if (!w) { status.textContent = "Connected source has no editable prompt widget; paste the resolved prompt here."; return; } source.value = String(w.value || ""); source.dispatchEvent(new Event("input")); }));
   const test = button("Enhance / test", async () => { save(); test.disabled = true; status.textContent = "Enhancing; selected local model will unload before completion…"; try { const r = await json("/overtli/studio/prompt", { action: "test", prompt: source.value, state }); result.value = r.prompt; result.dispatchEvent(new Event("input")); status.textContent = [...r.checks.errors, ...r.checks.warnings].join("\n") || "Completed. Prompt checks passed."; } catch (e) { status.textContent = e.message; } finally { test.disabled = false; } });
   panel.append(source, test, result, status);
   const upstream=node.getInputNode?.(0), upstreamText=upstream?.widgets?.find(w=>w.name==='text'||w.name==='prompt'||w.name==='value');
   const override=el('input');override.type='checkbox';override.checked=!!state.promptOverrideEnabled;override.onchange=()=>{state.promptOverrideEnabled=override.checked;save();};const overrideLabel=el('label','Use Studio authored prompt instead of connected source ');overrideLabel.append(override);panel.append(overrideLabel);
+  node._ovStudioRefreshControls = () => {
+    Object.assign(state, JSON.parse(widget.value || '{}')); lastSaved = {...state};
+    provider.value = state.provider; guide.value = state.guide;
+    if (![...model.children].some(option => option.value === (state.model || ''))) { const option = el('option', state.model || 'Choose model'); option.value = state.model || ''; model.append(option); }
+    model.value = state.model || ''; checks.enabled.checked = !!state.enabled; checks.autoUnload.checked = state.autoUnload !== false;
+    budget.value = String(state.maxTokens || 2048); contextBudget.value = String(state.contextTokens || 8192);
+    override.checked = !!state.promptOverrideEnabled;
+    if (document.activeElement !== instruction) instruction.value = state.instructions || '';
+    node._ovPromptPanel?.setGuide?.(state.guide);
+    node._ovPromptPanel?.sync?.();
+  };
   panel.append(directorPromptPanel(node,{studio:true,guide:state.guide,getPrompt:()=>state.promptOverrideEnabled?state.promptOverride || '':String(upstreamText?.value || ''),setPrompt:value=>{if(!override.checked && upstreamText){upstreamText.value=value;upstreamText.callback?.(value);node.graph?.change?.();}else{state.promptOverride=value;override.checked=true;state.promptOverrideEnabled=true;save();}},getConstant:()=>suiteState(node).s.constantPrompt || '',setConstant:value=>updateStudio(node,{constantPrompt:value}),constantEnabled:()=>suiteState(node).s.constantEnabled!==false,setConstantEnabled:value=>updateStudio(node,{constantEnabled:value})}));
-  const settings = el("details"); settings.append(el("summary", "Provider connections · saved locally")); panel.append(settings);
-  const fields = {}; for (const key of ["lmstudio_base_url", "lmstudio_api_key", "ollama_base_url", "ollama_api_key", "openai_compatible_base_url", "openai_compatible_api_key", "pollinations_api_key", "codex_executable"]) { const value = input("", key.replaceAll("_", " ")); if (key.endsWith("api_key")) { value.type = "password"; value.autocomplete = "new-password"; } settings.append(el("label", key.replaceAll("_", " ")), value); fields[key] = value; }
-  settings.addEventListener("toggle", async () => { if (!settings.open) return; try { const data = await json("/overtli/studio/settings"); for (const [key, value] of Object.entries(fields)) { if (key.endsWith("api_key")) value.placeholder = data[key] ? "Key stored · blank preserves" : "No key stored"; else value.value = data[key] || ""; } } catch (e) { status.textContent = e.message; } });
-  settings.append(button("Save connections", async () => { try { await json("/overtli/studio/settings", Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v.value]))); for (const [k, v] of Object.entries(fields)) if (k.endsWith("api_key")) v.value = ""; status.textContent = "Connections saved locally. Refresh models when ready."; } catch (e) { status.textContent = e.message; } }));
-  for (const key of Object.keys(fields).filter(k => k.endsWith("api_key"))) settings.append(button("Clear stored " + key.replaceAll("_", " "), async () => { try { await json("/overtli/studio/settings", { clear_keys: [key] }); fields[key].value = ""; fields[key].placeholder = "No key stored"; status.textContent = "Stored key cleared."; } catch (e) { status.textContent = e.message; } }));
+  panel.append(providerConnections(status));
   const dom = node.addDOMWidget("overtli_studio", "overtli_studio", panel, { serialize: false, hideOnZoom: false, getMinHeight: () => 480 });
   if (dom) { dom.computeLayoutSize = () => ({minWidth:700,minHeight:480}); dom.options ||= {}; dom.options.getMinHeight = () => 480; }
   installDirectorSizing(node, panel, [700, 480]); panel.append(sizingControls(node));

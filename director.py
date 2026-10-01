@@ -86,6 +86,19 @@ def append_constant(prompt, constant="", enabled=True):
     return prompt + ("\n\n" if prompt else "") + "[Constant]\n" + constant
 
 
+def enhancement_draft(prompt, state):
+    """Return editable authoring text; validate its once-composed final boundary."""
+    if not str(prompt).strip():
+        raise ValueError("Author a prompt before requesting an enhanced draft.")
+    candidate = str(enhance_prompt(str(prompt), state) or "").strip()
+    if not candidate:
+        raise ValueError("Enhancement returned an empty draft; authored text preserved.")
+    # The draft goes back to the raw source, never an already-styled Studio
+    # output. Applying it in the UI disables automatic enhancement.
+    final = prepare_prompt(candidate, {**state, "enabled": False, "promptOverrideEnabled": False})
+    return candidate, final
+
+
 def check_prompt(prompt, guide="H3 Ref2VA", reference_tags="", duration=None):
     prompt = str(prompt or "")
     errors, warnings = [], []
@@ -407,8 +420,12 @@ def register_routes():
         if len(prompt) > 200000 or not isinstance(state, dict):
             return web.json_response({"error": "Invalid or oversized prompt/state."}, status=400)
         try:
-            prompt = await asyncio.to_thread(prepare_prompt, prompt, state, body.get("action") in {"enhance", "test"})
-            return web.json_response({"prompt": prompt, "checks": check_prompt(prompt, state.get("guide", "H3 Ref2VA"), str(body.get("reference_tags") or ""), body.get("duration"))})
+            if body.get("action") == "draft":
+                prompt, final = await asyncio.to_thread(enhancement_draft, prompt, state)
+            else:
+                prompt = await asyncio.to_thread(prepare_prompt, prompt, state, body.get("action") in {"enhance", "test"})
+                final = prompt
+            return web.json_response({"prompt": prompt, "checks": check_prompt(final, state.get("guide", "H3 Ref2VA"), str(body.get("reference_tags") or ""), body.get("duration"))})
         except Exception as exc:
             message = str(exc)
             for provider in PROVIDERS:
