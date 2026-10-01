@@ -24,7 +24,7 @@ const context = { console, Map, Date, JSON, Math, Number, String, Event: class {
 };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../../web/director_shared.js'), 'utf8')
-  .replace(/^import .*;\r?\n/gm, '').replace(/export /g, '') + '\nthis.inlineEnhancer = inlineEnhancer; this.suiteNode = suiteNode; this.refreshPromptPanels = refreshPromptPanels;', context);
+  .replace(/^import .*;\r?\n/gm, '').replace(/export /g, '') + '\nthis.inlineEnhancer = inlineEnhancer; this.suiteNode = suiteNode; this.refreshPromptPanels = refreshPromptPanels; this.finalPromptPanel = finalPromptPanel; this.promptFingerprint = promptFingerprint;', context);
 (async () => {
   const widget = {name: 'state', value: JSON.stringify({provider: 'LM Studio', model: 'saved-offline', enabled: true, autoUnload: true})};
   const paired = {id: 3, type: 'OvertliStudioSuite', widgets: [widget], properties: {}, graph: {change() {}}};
@@ -70,5 +70,27 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../../web/director_shared.
   assert.equal(apply.disabled, true, 'settings edits invalidate an in-flight draft');
   assert.equal(authored, 'editable draft');
   assert.equal(JSON.parse(widget.value).provider, 'Ollama');
+  let graphDone;
+  context.app.graphToPrompt = () => new Promise(resolve => { graphDone = resolve; });
+  const final = context.finalPromptPanel(host);
+  let fingerprint = 'original inputs';
+  final.getFingerprint = () => fingerprint;
+  const prepare = final.children.find(x => x.textContent === 'Prepare final prompts');
+  const beforeRequests = requests.length;
+  const preparation = prepare.onclick();
+  fingerprint = 'edited while graph was being prepared';
+  graphDone({output: {}});
+  await preparation;
+  assert.equal(requests.length, beforeRequests, 'mixed graph snapshot is rejected before backend preflight');
+  assert.match(final.children.at(-1).textContent, /changed during graph preparation/);
+  const settings = {getPrompt: () => 'author', guide:'H3 Ref2VA'};
+  // Studio seed changes are settings changes; only a Director's transient
+  // execution seed is omitted, while model and canvas changes remain relevant.
+  const directorHost = {properties:{overtliStudioNodeId:3}, graph:host.graph, widgets:[{name:'state',value:'{"seed":1,"width":1024}'}]};
+  const original = context.promptFingerprint(directorHost, settings);
+  directorHost.widgets[0].value = '{"seed":2,"width":1024}';
+  assert.equal(context.promptFingerprint(directorHost, settings), original);
+  directorHost.widgets[0].value = '{"seed":2,"width":768}';
+  assert.notEqual(context.promptFingerprint(directorHost, settings), original);
   console.log('Inline enhancement pairing, explicit discovery, offline model persistence and stale draft guards: OK');
 })().catch(error => {console.error(error); process.exitCode = 1;});

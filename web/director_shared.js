@@ -193,6 +193,17 @@ function stylePanel(host) {
   details.addEventListener('toggle',async()=>{if(!details.open)return;try{catalog=(await json('/overtli/studio/styles')).styles;category.replaceChildren(el('option','All'));for(const c of [...new Set(catalog.map(x=>x.category))].sort())category.append(el('option',c));render();}catch(e){preview.textContent=e.message;}});
   return details;
 }
+function promptFingerprint(host, options) {
+  let director = host.widgets?.find(w => w.name === 'state')?.value;
+  try {
+    // Queue preparation changes generated seeds. They do not change prompt
+    // composition and must not invalidate an otherwise current snapshot.
+    director = JSON.parse(director || '{}', (key, value) => /seed/i.test(key) ? undefined : value);
+  } catch { /* Preserve malformed state for the normal preflight error path. */ }
+  return JSON.stringify({prompt: options.getPrompt(), constant: options.getConstant?.() ?? suiteState(host).s.constantPrompt ?? '',
+    constantEnabled: options.constantEnabled?.() ?? suiteState(host).s.constantEnabled !== false,
+    guide: options.guide, studio: suiteState(host).s, director});
+}
 function finalPromptPanel(host) {
   const details = el('details'); details.append(el('summary','Final prompts sent to the model'));
   const status=el('div');status.className='ovstudio-status';
@@ -206,7 +217,10 @@ function finalPromptPanel(host) {
   };
   picker.onchange=()=>{const row=rows[Number(picker.value)];area.value=row?.prompt || '';area.dispatchEvent(new Event('input'));const b=row?.budget;counts.textContent=b?`${b.characters} characters · ${b.utf16_units} UTF-16 units · ${b.tokens == null ? 'exact token count unavailable' : b.tokens+' text/template tokens'}\n${b.policy}\n${b.token_count_kind}`:'';};
   const prepare=button('Prepare final prompts',async()=>{prepare.disabled=true;status.textContent='Resolving current graph prompts…';try{
-    const graph=await app.graphToPrompt(); const ticket=revision;
+    const before = details.getFingerprint?.();
+    const graph=await app.graphToPrompt();
+    if (before !== details.getFingerprint?.()) { status.textContent='Prompt inputs changed during graph preparation. Prepare final prompts again.'; return; }
+    const ticket=revision;
     const data=await json('/overtli/studio/preflight',{output:graph.output});
     if(ticket!==revision){status.textContent='Prompt inputs changed during preparation. Prepare final prompts again.';return;} rows=data.prompts;
     picker.replaceChildren();rows.forEach((row,index)=>{const option=el('option',row.label+' · '+row.characters+' characters');option.value=String(index);picker.append(option);});picker.value=String(Math.max(0,rows.findIndex(row=>row.characters>0)));picker.onchange();
@@ -237,6 +251,7 @@ export function directorPromptPanel(host, options) {
   panel.append(actions, status);
   const enhancer = !options.studio ? inlineEnhancer(host, () => options) : null; if (enhancer) panel.append(enhancer);
   const finalPrompts = finalPromptPanel(host); panel.append(stylePanel(host),finalPrompts);
+  finalPrompts.getFingerprint = () => promptFingerprint(host, options);
   const details = el("details"), summary = el("summary", isAddtl(host) ? "Addtl prompt library" : "Prompt library"); details.append(summary); panel.append(details);
   const filter = input("", "Search name, prompt, tags"), category = el("select"), names = el("select"), preview = el("div"); preview.className = "ovstudio-preview";
   const name = input("", "Save name"), tags = input("", "Comma-separated tags"), notes = input("", "Notes"), saveCategory = input("General", "Category");
@@ -258,8 +273,7 @@ export function directorPromptPanel(host, options) {
     const now = suiteState(host);
     if (document.activeElement !== constant) { constant.value = options.getConstant?.() ?? now.s.constantPrompt ?? ''; constant._ovRefreshEditor?.(); }
     enabled.checked = options.constantEnabled?.() ?? now.s.constantEnabled !== false;
-    finalPrompts.invalidateIfChanged(JSON.stringify({prompt: value, constant: constant.value, constantEnabled: enabled.checked,
-      guide: options.guide, studio: now.s, director: host.widgets?.find(w => w.name === 'state')?.value}));
+    finalPrompts.invalidateIfChanged(finalPrompts.getFingerprint());
     enhancer?.refresh();
   };
   host._ovPromptPanel = {panel, sync: syncEditors, setGuide: guide => {options.guide = guide;}, refresh: next => {
