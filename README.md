@@ -58,7 +58,7 @@
 
 Legacy `GZ_*` nodes remain available for existing graphs and media generation. See the [Director integration guide](supplementary_docs/DIRECTOR_INTEGRATION.md) for the unified editor, constants, Addtl media islands, workflow migration, and video comparison.
 
-### Version 1.2.1 Director integration
+### Version 1.2.2 Director integration
 
 - Shared expanding prompt editors, local Ctrl+F find/replace, character counts and estimated token counts.
 - Editable `[Constant]` blocks, shared standard prompt libraries, and a separate Addtl library.
@@ -67,6 +67,7 @@ Legacy `GZ_*` nodes remain available for existing graphs and media generation. S
 - Targeted LM Studio instance unloading and Ollama `keep_alive: 0` with host-state verification after enhancement/test.
 - Optional Pixaroma Save Video integration: durable MP4, MP4 HQ, WebM and ProRes saves, prompt/LoRA sidecars, browser proxies and synchronized A/B video comparison.
 - Inline enhancement controls update each Director's paired visible Studio. Draft application turns automatic enhancement off and preserves separate styles/constants; final-prompt snapshots invalidate when inputs change.
+- Paired Studio shows provider connection settings and navigation to the main Director. The main Director owns prompt editing, styles, constants, library and final inspection. Standalone Studio retains its complete authoring/test flow; existing enabled overrides have an explicit migration action.
 - Saved manual sizing survives node selection, automatic layout and workflow reopen, including supported legacy Suite and Director review nodes.
 - Standalone H3 Review Wall provides exact source-frame scrubbing and bounded PNG extraction to Normal/Addtl input islands, with original-file inspection separate from browser proxy playback.
 - Addtl image/video loaders use recursive schemas under `input/OvertliDS/addtl`; managed upload controls and pickers stay within the selected island.

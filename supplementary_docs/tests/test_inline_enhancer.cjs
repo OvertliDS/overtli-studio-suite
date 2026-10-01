@@ -32,6 +32,12 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '../../web/director_shared.
   const host = {properties: {overtliStudioNodeId: 3}, graph: {_nodes: [paired, unrelated]}};
   assert.equal(context.suiteNode(host), paired);
   assert.equal(context.suiteNode({...host, properties: {}}), null, 'ambiguous Studio never guessed');
+  const nested = {id: 5, type: 'OvertliStudioSuite', properties: {}};
+  const nestedHost = {id: 8, properties: {overtliStudioNodeId: 5}, graph: {_nodes: [], subgraphs: new Map([['nested', {_nodes:[nested]}]])}};
+  assert.equal(context.suiteNode(nestedHost), null, 'pair resolution never crosses into a nested graph');
+  const conflict = {id: 3, type: 'OvertliStudioSuite', properties: {overtliDirectorNodeId: 99}, widgets: [widget]};
+  const conflictedHost = {id: 2, properties: {overtliStudioNodeId: 3}, graph: {_nodes: [conflict]}};
+  assert.equal(context.suiteNode(conflictedHost), null, 'a conflicting reverse id is not treated as a pair');
   let hostRefreshes = 0, studioRefreshes = 0, unrelatedRefreshes = 0;
   host.id = 2;
   host._ovPromptPanel = {sync: () => hostRefreshes++};

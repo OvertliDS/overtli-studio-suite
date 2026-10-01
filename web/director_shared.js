@@ -68,39 +68,68 @@ async function json(url, body) {
   const response = await fetch(api.apiURL(url), body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const data = await response.json(); if (!response.ok || data.error) throw Error(data.error || `Request failed (${response.status})`); return data;
 }
+const isStudioNode = node => (node?.comfyClass || node?.type) === "OvertliStudioSuite";
+const hasNodeId = value => value !== undefined && value !== null && String(value).trim() !== "";
+function matchingNode(nodes, predicate) {
+  const matches = nodes.filter(predicate);
+  return matches.length === 1 ? matches[0] : null;
+}
+function pairedStudioForDirector(director) {
+  if (!director || isStudioNode(director)) return null;
+  const nodes = director.graph?._nodes || [], directorId = director.id;
+  const requestedId = director.properties?.overtliStudioNodeId;
+  if (hasNodeId(requestedId)) {
+    return matchingNode(nodes, node => isStudioNode(node) && String(node.id) === String(requestedId) &&
+      (!hasNodeId(node.properties?.overtliDirectorNodeId) || String(node.properties.overtliDirectorNodeId) === String(directorId)));
+  }
+  if (!hasNodeId(directorId)) return null;
+  return matchingNode(nodes, node => isStudioNode(node) &&
+    String(node.properties?.overtliDirectorNodeId) === String(directorId));
+}
+function pairedDirectorForStudio(studio) {
+  if (!isStudioNode(studio)) return null;
+  const nodes = studio.graph?._nodes || [], studioId = studio.id;
+  const requestedId = studio.properties?.overtliDirectorNodeId;
+  if (hasNodeId(requestedId)) {
+    return matchingNode(nodes, node => !isStudioNode(node) && String(node.id) === String(requestedId) &&
+      (!hasNodeId(node.properties?.overtliStudioNodeId) || String(node.properties.overtliStudioNodeId) === String(studioId)));
+  }
+  if (!hasNodeId(studioId)) return null;
+  return matchingNode(nodes, node => !isStudioNode(node) &&
+    String(node.properties?.overtliStudioNodeId) === String(studioId));
+}
+function studioPairKey(studio) {
+  const director = pairedDirectorForStudio(studio);
+  if (director) return `paired:${String(director.id)}`;
+  const requested = studio.properties?.overtliDirectorNodeId;
+  return hasNodeId(requested) ? `waiting:${String(requested)}` : "standalone";
+}
 function suiteNode(host) {
-  if (host?._ovStudio || (host?.comfyClass || host?.type) === "OvertliStudioSuite") return host;
-  const seen = new Set(), candidates = [];
-  const walk = g => { if (!g || seen.has(g)) return; seen.add(g); for (const n of g._nodes || []) { if ((n.comfyClass || n.type) === "OvertliStudioSuite") candidates.push(n); walk(n.subgraph || app.rootGraph?.subgraphs?.get?.(n.type)); } };
-  walk(host?.graph);
-  const paired = candidates.find(n => String(n.id) === String(host?.properties?.overtliStudioNodeId));
-  return paired || (candidates.length === 1 ? candidates[0] : null);
+  return isStudioNode(host) ? host : pairedStudioForDirector(host);
 }
 function suiteState(host) { const n = suiteNode(host), w = n?.widgets?.find(w => w.name === "state"); let s = {}; try { s = JSON.parse(w?.value || "{}"); } catch {} return { n, w, s }; }
 function refreshPromptPanels(host) {
   host._ovPromptPanel?.sync?.();
   const studio = suiteNode(host);
   studio?._ovStudioRefreshControls?.();
-  // Explicit pairing also keeps edits made in the visible Studio synchronized
-  // with its Director. Refreshing editors never writes back authored text.
-  for (const node of studio?.graph?._nodes || []) {
-    if (node !== host && node !== studio &&
-        (String(node.id) === String(studio.properties?.overtliDirectorNodeId) ||
-         String(node.properties?.overtliStudioNodeId) === String(studio.id))) {
-      node._ovPromptPanel?.sync?.();
-    }
-  }
+  const director = isStudioNode(host) ? pairedDirectorForStudio(host) : host;
+  if (director && director !== host) director._ovPromptPanel?.sync?.();
 }
 function updateStudio(host, changes) {
   const current = suiteState(host); if (!current.w) return;
   current.s = {...current.s, ...changes}; current.w.value = JSON.stringify(current.s);
-  current.n.properties ||= {}; current.n.properties.overtliStudioState = {...current.s}; host.graph?.change?.();
+  current.n.properties ||= {}; current.n.properties.overtliStudioState = {...current.s};
+  current.n._ovStudioHydrationSignature = studioHydrationSignature(current.n, current.n._ovStudioPairKey);
+  host.graph?.change?.();
   refreshPromptPanels(host);
 }
-function providerConnections(status) {
-  const settings = el("details"); settings.append(el("summary", "Provider connections · saved locally"));
+function providerConnections(status, options = {}) {
+  const wrapInDetails = options.details !== false;
+  const settings = el(wrapInDetails ? "details" : "div");
+  if (wrapInDetails) settings.append(el("summary", "Provider connections · saved locally"));
   const fields = {}; for (const key of ["lmstudio_base_url", "lmstudio_api_key", "ollama_base_url", "ollama_api_key", "openai_compatible_base_url", "openai_compatible_api_key", "pollinations_api_key", "codex_executable"]) { const value = input("", key.replaceAll("_", " ")); if (key.endsWith("api_key")) { value.type = "password"; value.autocomplete = "new-password"; } settings.append(el("label", key.replaceAll("_", " ")), value); fields[key] = value; }
-  settings.addEventListener("toggle", async () => { if (!settings.open) return; try { const data = await json("/overtli/studio/settings"); for (const [key, value] of Object.entries(fields)) { if (key.endsWith("api_key")) value.placeholder = data[key] ? "Key stored · blank preserves" : "No key stored"; else value.value = data[key] || ""; } } catch (e) { status.textContent = e.message; } });
+  settings.loadSettings = async () => { try { const data = await json("/overtli/studio/settings"); for (const [key, value] of Object.entries(fields)) { if (key.endsWith("api_key")) value.placeholder = data[key] ? "Key stored · blank preserves" : "No key stored"; else value.value = data[key] || ""; } } catch (e) { status.textContent = e.message; } };
+  if (wrapInDetails) settings.addEventListener("toggle", () => { if (settings.open) settings.loadSettings(); });
   settings.append(button("Save connections", async () => { try { await json("/overtli/studio/settings", Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v.value]))); for (const [k, v] of Object.entries(fields)) if (k.endsWith("api_key")) v.value = ""; status.textContent = "Connections saved locally. Refresh models when ready."; } catch (e) { status.textContent = e.message; } }));
   for (const key of Object.keys(fields).filter(k => k.endsWith("api_key"))) settings.append(button("Clear stored " + key.replaceAll("_", " "), async () => { try { await json("/overtli/studio/settings", { clear_keys: [key] }); fields[key].value = ""; fields[key].placeholder = "No key stored"; status.textContent = "Stored key cleared."; } catch (e) { status.textContent = e.message; } }));
   return settings;
@@ -238,11 +267,11 @@ export function directorPromptPanel(host, options) {
   const current = suiteState(host); if(current.w){current.s.guide=options.guide;current.w.value=JSON.stringify(current.s);if(current.n._ovStudioGuideControl)current.n._ovStudioGuideControl.value=options.guide;} const initial = options.getConstant?.() ?? current.s.constantPrompt ?? "";
   const constant = textEditor(initial, value => {
     options.setConstant?.(value);
-    if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantPrompt = value; current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); host.graph?.change?.(); }
+    if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantPrompt = value; current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); current.n._ovStudioHydrationSignature = studioHydrationSignature(current.n, current.n._ovStudioPairKey); host.graph?.change?.(); }
     refreshPromptPanels(host);
   });
   const enabled = el("input"); enabled.type = "checkbox"; enabled.checked = options.constantEnabled?.() ?? current.s.constantEnabled !== false;
-  enabled.onchange = () => { options.setConstantEnabled?.(enabled.checked); if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); host.graph?.change?.(); } refreshPromptPanels(host); };
+  enabled.onchange = () => { options.setConstantEnabled?.(enabled.checked); if (current.w) { Object.assign(current.s, suiteState(host).s); current.s.constantEnabled = enabled.checked; current.w.value = JSON.stringify(current.s); current.n._ovStudioHydrationSignature = studioHydrationSignature(current.n, current.n._ovStudioPairKey); host.graph?.change?.(); } refreshPromptPanels(host); };
   const toggle = el("label", "Append editable [Constant] block "); toggle.append(enabled); panel.append(toggle, constant);
   panel.append(button("Use example constant", () => { constant.value = DEFAULT_CONSTANT; constant.dispatchEvent(new Event("input")); }));
   const status = el("div"); status.className = "ovstudio-status";
@@ -276,20 +305,73 @@ export function directorPromptPanel(host, options) {
     finalPrompts.invalidateIfChanged(finalPrompts.getFingerprint());
     enhancer?.refresh();
   };
-  host._ovPromptPanel = {panel, sync: syncEditors, setGuide: guide => {options.guide = guide;}, refresh: next => {
+  host._ovPromptPanel = {panel, sync: syncEditors, setGuide: guide => {options.guide = guide;},
+    getAuthoredPrompt: () => String(options.getPrompt?.() || ""),
+    applyAuthoredPrompt: value => {
+      if (typeof options.setPrompt !== "function") return false;
+      const next = String(value ?? "");
+      options.setPrompt(next);
+      refreshPromptPanels(host);
+      return String(options.getPrompt?.() || "") === next;
+    },
+    refresh: next => {
     options = next;
     const now = suiteState(host);
     if (now.w) {
       Object.assign(current.s, now.s); current.n = now.n; current.w = now.w;
       current.s.guide = options.guide; now.w.value = JSON.stringify(current.s);
+      now.n._ovStudioHydrationSignature = studioHydrationSignature(now.n, now.n._ovStudioPairKey);
       now.n._ovStudioRefreshControls?.();
     }
     syncEditors();
   }};
+  pairedStudioForDirector(host)?._ovStudioRefreshControls?.();
   return panel;
 }
 
+function studioHydrationSignature(node, pairKey = studioPairKey(node)) {
+  const widget = node?.widgets?.find(w => w.name === "state");
+  return JSON.stringify({pairKey, widget: String(widget?.value || ""), saved: node?.properties?.overtliStudioState || null});
+}
 function installSuite(node, rehydrate = false) {
+  if (!node || !Array.isArray(node.widgets)) return false;
+  const widget = node.widgets.find(w => w.name === "state");
+  if (!widget) { node._ovStudioInstallPending = true; return false; }
+  const pairKey = studioPairKey(node), signature = studioHydrationSignature(node, pairKey);
+  if (node._ovStudioInstalling) { node._ovStudioInstallPending = true; return false; }
+  if (node._ovStudio && node._ovStudioPairKey === pairKey && node._ovStudioHydrationSignature === signature) {
+    node._ovStudioRefreshControls?.();
+    return true;
+  }
+  node._ovStudioInstalling = true;
+  try {
+    const result = installSuitePanel(node, rehydrate || !!node._ovStudio, widget, pairKey);
+    node._ovStudioHydrationSignature = studioHydrationSignature(node, pairKey);
+    return result;
+  } finally {
+    node._ovStudioInstalling = false;
+    const retry = !!node._ovStudioInstallPending;
+    node._ovStudioInstallPending = false;
+    if (retry) queueMicrotask(() => installSuite(node, true));
+  }
+}
+const pendingPairRefresh = new WeakSet();
+function refreshStudioPairs(graph) {
+  for (const node of graph?._nodes || []) {
+    if (!isStudioNode(node)) continue;
+    const nextPairKey = studioPairKey(node);
+    if (node._ovStudioPairKey !== nextPairKey || node._ovStudioInstallPending) installSuite(node, true);
+  }
+}
+function scheduleStudioPairRefresh(graph) {
+  if (!graph || typeof graph !== "object" || pendingPairRefresh.has(graph)) return;
+  pendingPairRefresh.add(graph);
+  queueMicrotask(() => {
+    pendingPairRefresh.delete(graph);
+    refreshStudioPairs(graph);
+  });
+}
+function installSuitePanel(node, rehydrate, widget, pairKey) {
   if (node._ovStudio && !rehydrate) return;
   if (rehydrate) {
     delete node._ovPromptPanel; delete node._ovStudioRefreshControls;
@@ -297,16 +379,73 @@ function installSuite(node, rehydrate = false) {
     old?.element?.remove(); old?.onRemove?.();
     if (old) node.widgets.splice(node.widgets.indexOf(old), 1);
   }
-  node._ovStudio = true; css();
-  const widget = node.widgets.find(w => w.name === "state"); let state = {}; try { state = JSON.parse(widget.value); } catch {}
+  node._ovStudio = true; node._ovStudioPairKey = pairKey; css();
+  let state = {}; try { state = JSON.parse(widget.value); } catch {}
   state = { provider: "LM Studio", model: "", guide: "H3 Ref2VA", enabled: false, autoUnload: true, ...node.properties?.overtliStudioState, ...state };
   if (rehydrate) widget.value = JSON.stringify(state);
   widget.type = "converted-widget"; widget.computeSize = () => [0, -4];
   for (const element of [widget.element, widget.inputEl]) if (element?.style) element.style.display = "none";
   const panel = el("section"); panel.className = "ovstudio"; const status = el("div"); status.className = "ovstudio-status";
   let lastSaved = { ...state };
-  const save = () => { let current = {}; try { current = JSON.parse(widget.value || "{}"); } catch {} for (const [key, value] of Object.entries(current)) if (state[key] === lastSaved[key]) state[key] = value; widget.value = JSON.stringify(state); lastSaved = { ...state }; node.properties ||= {}; node.properties.overtliStudioState = { ...state }; node.graph?.change?.(); };
+  const save = () => { let current = {}; try { current = JSON.parse(widget.value || "{}"); } catch {} for (const [key, value] of Object.entries(current)) if (state[key] === lastSaved[key]) state[key] = value; widget.value = JSON.stringify(state); lastSaved = { ...state }; node.properties ||= {}; node.properties.overtliStudioState = { ...state }; node.graph?.change?.(); node._ovStudioHydrationSignature = studioHydrationSignature(node, node._ovStudioPairKey); };
   panel.append(el("h3", "OVERTLI Studio"));
+  const pairedDirector = pairedDirectorForStudio(node);
+  if (pairedDirector) {
+    const owner = el("div", "The main Director owns prompts, styles, constants, the library, final inspection and inline enhancement.");
+    const focusOwner = button("Focus main Director", () => {
+      const canvas = app.canvas;
+      if (!canvas?.selectNode && !canvas?.centerOnNode) { status.textContent = "The paired Director is in this graph; canvas navigation is unavailable."; return; }
+      canvas.selectNode?.(pairedDirector); canvas.centerOnNode?.(pairedDirector); canvas.setDirty?.(true, true);
+    });
+    const settings = el("details"); settings.append(el("summary", "Provider connections · saved locally"));
+    const providerSummary = el("div");
+    const connections = providerConnections(status, {details:false});
+    settings.append(providerSummary, connections);
+    settings.addEventListener("toggle", () => { if (settings.open) connections.loadSettings?.(); });
+    const overrideWarning = el("div"); overrideWarning.className = "ovstudio-status"; overrideWarning.setAttribute("role", "status");
+    const migrateOverride = button("Move saved override to main Director", () => {
+      const current = suiteState(node).s;
+      if (!current.promptOverrideEnabled) return;
+      const savedOverride = String(current.promptOverride || "");
+      if (!savedOverride.trim()) {
+        updateStudio(node, {promptOverrideEnabled:false});
+        status.textContent = "The empty override is off. The main Director prompt is active; no saved override text was removed.";
+        return;
+      }
+      const director = pairedDirectorForStudio(node), apply = director?._ovPromptPanel?.applyAuthoredPrompt;
+      if (typeof apply !== "function") { status.textContent = "Open the paired Director prompt panel before moving this override. It remains enabled."; return; }
+      if (!apply(savedOverride)) { status.textContent = "The Director did not confirm the prompt update. The Studio override remains enabled."; return; }
+      updateStudio(node, {promptOverrideEnabled:false});
+      status.textContent = "Saved override copied to the main Director and disabled in Studio. The saved Studio text is retained for recovery.";
+    });
+    const refreshPairedControls = () => {
+      let current = {}; try { current = JSON.parse(widget.value || "{}"); } catch {}
+      Object.assign(state, current); lastSaved = {...state};
+      providerSummary.textContent = `Shared enhancement provider: ${state.provider || "LM Studio"} · model: ${state.model || "none selected"}. Configure inline enhancement in the main Director.`;
+      const activeOverride = !!state.promptOverrideEnabled, hasText = !!String(state.promptOverride || "").trim();
+      overrideWarning.hidden = !activeOverride;
+      migrateOverride.hidden = !activeOverride;
+      if (activeOverride) {
+        overrideWarning.textContent = hasText
+          ? "An enabled Studio prompt override is still used for execution. Move it into the main Director to disable it safely."
+          : "An enabled Studio prompt override is empty. Choose the action below to return execution to the main Director prompt.";
+        migrateOverride.textContent = hasText ? "Move saved override to main Director and disable" : "Use main Director prompt and disable empty override";
+        const applyOverride = pairedDirectorForStudio(node)?._ovPromptPanel?.applyAuthoredPrompt;
+        migrateOverride.disabled = hasText && typeof applyOverride !== "function";
+      } else {
+        migrateOverride.textContent = "Move saved override to main Director";
+        migrateOverride.disabled = true;
+      }
+      node._ovStudioHydrationSignature = studioHydrationSignature(node, node._ovStudioPairKey);
+    };
+    panel.append(owner, focusOwner, settings, overrideWarning, migrateOverride, status);
+    node._ovStudioRefreshControls = refreshPairedControls;
+    refreshPairedControls();
+    const dom = node.addDOMWidget("overtli_studio", "overtli_studio", panel, {serialize:false, hideOnZoom:false, getMinHeight:() => 260});
+    if (dom) { dom.computeLayoutSize = () => ({minWidth:600,minHeight:260}); dom.options ||= {}; dom.options.getMinHeight = () => 260; }
+    installDirectorSizing(node, panel, [600, 260]); panel.append(sizingControls(node));
+    return true;
+  }
   const provider = el("select"), model = el("select"), guide = el("select");
   for (const p of ["LM Studio", "Ollama", "Codex", "Pollinations", "OpenAI-compatible"]) provider.append(el("option", p)); provider.value = state.provider;
   for (const g of ["H3 Ref2VA", "H3 Base", "FLUX.2 Klein 9B", "Qwen Image 2.1"]) guide.append(el("option", g)); guide.value = state.guide; node._ovStudioGuideControl = guide;
@@ -356,6 +495,10 @@ async function scopeNode(node) {
       const extensions = /\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(sample) || w.name === "video" ? /\.(mp4|mov|webm|mkv|avi|m4v)$/i : /\.(wav|mp3|flac|ogg|m4a|aac)$/i.test(sample) || w.name === "audio" ? /\.(wav|mp3|flac|ogg|m4a|aac)$/i : /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i;
       w.options.values = data.files.filter(x => extensions.test(x));
       if (w.value && scopeFiles([w.value], node).length && !w.options.values.includes(w.value)) w.options.values.unshift(w.value);
+      // File discovery runs after the frontend's initial combo validation.
+      // Notify its widget hook only when the scoped service confirms this file;
+      // retained missing selections must keep their diagnostic.
+      if (w.value && data.files.includes(w.value)) node.onWidgetChanged?.(w.name, w.value, w.value, w);
     }
     for (const upload of node.widgets || []) {
       if (upload.type !== "button" || !/upload/i.test(upload.name)) continue;
@@ -381,7 +524,29 @@ async function scopeNode(node) {
     }
   } catch (e) { console.error("[OVERTLI] Scoped input discovery failed:", e.message); }
 }
-app.registerExtension({ name: "Overtli.Studio.Director", nodeCreated(node) { const original = node.onConfigure; node.onConfigure = function(...args) { const result = original?.apply(this, args); queueMicrotask(() => { if ((this.comfyClass || this.type) === "OvertliStudioSuite") installSuite(this, true); scopeNode(this); }); return result; }; if ((node.comfyClass || node.type) === "OvertliStudioSuite") queueMicrotask(() => installSuite(node)); }, loadedGraphNode(node) { if ((node.comfyClass || node.type) === "OvertliStudioSuite") queueMicrotask(() => installSuite(node, true)); queueMicrotask(() => scopeNode(node)); } });
+app.registerExtension({ name: "Overtli.Studio.Director", nodeCreated(node) {
+  const original = node.onConfigure;
+  const originalRemoved = node.onRemoved;
+  node.onConfigure = function(...args) {
+    const result = original?.apply(this, args);
+    queueMicrotask(() => {
+      if (isStudioNode(this)) installSuite(this, true);
+      scopeNode(this); scheduleStudioPairRefresh(this.graph);
+    });
+    return result;
+  };
+  node.onRemoved = function(...args) {
+    const graph = this.graph;
+    const result = originalRemoved?.apply(this, args);
+    scheduleStudioPairRefresh(graph);
+    return result;
+  };
+  if (isStudioNode(node)) queueMicrotask(() => installSuite(node));
+  scheduleStudioPairRefresh(node.graph);
+}, loadedGraphNode(node) {
+  if (isStudioNode(node)) queueMicrotask(() => installSuite(node, true));
+  queueMicrotask(() => { scopeNode(node); scheduleStudioPairRefresh(node.graph); });
+} });
 
 // Extend the existing Pixaroma submit path without changing its frontend ID.
 // Metadata inputs are linked to the actual executed Studio/LoRA outputs.

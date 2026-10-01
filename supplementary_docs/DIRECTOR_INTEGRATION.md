@@ -1,10 +1,25 @@
-# Director integration, version 1.2.1
+# Director integration, version 1.2.2
 
 The unified `OvertliStudioSuite` node accepts a connected authored prompt and outputs
 the resolved prompt plus JSON structure checks. Existing `GZ_*` nodes retain their
 IDs and behavior. Enhancement starts disabled so opening or migrating a workflow
 does not contact a provider or change an authored prompt. Local auto-unload starts
 enabled.
+
+The main H3/Image Director is the prompt authoring surface. An explicitly paired
+Studio in the same graph shows provider connections, a provider/model summary and
+**Focus main Director**. It has no competing authored or test prompt editor.
+Pair discovery is refreshed when nodes are created, configured, loaded or removed.
+Standalone Studio retains its complete authoring, enhancement and test interface.
+An existing enabled Studio prompt override remains active and visible as a warning.
+Use **Move saved override to main Director and disable** to copy it through the
+Director setter; the saved override text is retained for recovery. No populated
+override is disabled until the Director confirms that it accepted the text.
+
+Scoped input discovery preserves authored selections. After receiving a scoped
+file listing it notifies ComfyUI's widget hook for confirmed existing selections,
+clearing stale initial missing-media reports. Missing selections remain visible
+for recovery and retain their diagnostic.
 
 ## Prompt authoring and library
 
